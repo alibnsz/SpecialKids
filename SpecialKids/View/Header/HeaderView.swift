@@ -59,8 +59,3 @@ struct HeaderView: View {
         .frame(height: 60)
     }
 }
-
-#Preview {
-    TeacherView()
-}
-

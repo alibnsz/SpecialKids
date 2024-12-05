@@ -18,5 +18,13 @@ struct Student: Identifiable, Codable {
 struct SchoolClass: Identifiable, Codable {
     var id: String
     var name: String
+    var teacherId: String
     var students: [String]
+    
+    init(id: String = UUID().uuidString, name: String, teacherId: String, students: [String] = []) {
+        self.id = id
+        self.name = name
+        self.teacherId = teacherId
+        self.students = students
+    }
 }

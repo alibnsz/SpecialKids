@@ -11,7 +11,7 @@ import SwiftUI
 struct TeacherTabView: View {
     var body: some View {
         TabView {
-            TeacherHomeView()
+            ClassView()
                 .tabItem {
                     Label("Ana", systemImage: "house")
                 }

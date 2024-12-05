@@ -20,12 +20,10 @@ struct CustomButton: View {
                 .padding() // İç boşluk
                 .frame(maxWidth: .infinity) // Butonun genişliğini tam ekran yapar
                 .background(backgroundColor) // Arka plan rengi
-                .cornerRadius(15) // Köşe yuvarlama
+                .cornerRadius(150) // Köşe yuvarlama
                 .shadow(radius: 5) // Gölgeleme
         }
         .buttonStyle(PlainButtonStyle()) // Standart buton stili
     }
 }
-#Preview {
-    TeacherView()
-}
+

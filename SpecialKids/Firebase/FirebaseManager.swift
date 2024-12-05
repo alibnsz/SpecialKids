@@ -16,11 +16,12 @@ class FirebaseManager: ObservableObject {
     @Published var studentIdToAdd: String? = nil
 
     // MARK: - Sınıf Oluşturma
-    func createClass(name: String, completion: @escaping (Error?) -> Void) {
-        let newClass = SchoolClass(id: UUID().uuidString, name: name, students: [])
+    func createClass(name: String, teacherId: String, completion: @escaping (Error?) -> Void) {
+        let newClass = SchoolClass(id: UUID().uuidString, name: name, teacherId: teacherId, students: [])
         db.collection("classes").document(newClass.id).setData([
             "id": newClass.id,
             "name": name,
+            "teacherId": teacherId,
             "students": [] // Boş öğrenci listesi ile başlatıyoruz
         ]) { error in
             DispatchQueue.main.async {
@@ -31,7 +32,6 @@ class FirebaseManager: ObservableObject {
             }
         }
     }
-
     // MARK: - Çocukları Al
     func fetchChildren(for parentId: String, completion: @escaping ([Student]?, Error?) -> Void) {
         db.collection("parents").document(parentId).collection("children")
@@ -208,60 +208,48 @@ class FirebaseManager: ObservableObject {
         }
     }
     
+    func addClass(_ schoolClass: SchoolClass, completion: @escaping (Error?) -> Void) {
+        let db = Firestore.firestore()
+        db.collection("classes").document(schoolClass.id).setData([
+            "id": schoolClass.id,
+            "name": schoolClass.name,
+            "teacherId": schoolClass.teacherId,
+            "students": []
+        ]) { error in
+            if error == nil {
+                self.classes.append(schoolClass)
+            }
+            completion(error)
+        }
+    }
+
+    func deleteClass(classId: String, completion: @escaping (Error?) -> Void) {
+        let db = Firestore.firestore()
+        db.collection("classes").document(classId).delete { error in
+            if error == nil {
+                self.classes.removeAll { $0.id == classId }
+            }
+            completion(error)
+        }
+    }
+
+    // Update existing fetchClassesForTeacher method
     func fetchClassesForTeacher(teacherId: String, completion: @escaping ([SchoolClass]?, Error?) -> Void) {
-        db.collection("teachers").document(teacherId).getDocument { document, error in
+        db.collection("classes").whereField("teacherId", isEqualTo: teacherId).getDocuments { snapshot, error in
             if let error = error {
                 completion(nil, error)
                 return
             }
-            guard let data = document?.data(),
-                  let classIds = data["classes"] as? [String] else {
-                completion(nil, nil)
-                return
-            }
-
-            var fetchedClasses: [SchoolClass] = []
-            let group = DispatchGroup()
-            for classId in classIds {
-                group.enter()
-                self.db.collection("classes").document(classId).getDocument { classDoc, error in
-                    if let classDoc = classDoc, let schoolClass = try? classDoc.data(as: SchoolClass.self) {
-                        fetchedClasses.append(schoolClass)
-                    }
-                    group.leave()
-                }
-            }
-            group.notify(queue: .main) {
-                completion(fetchedClasses, nil)
-            }
+            let classes = snapshot?.documents.compactMap { try? $0.data(as: SchoolClass.self) }
+            self.classes = classes ?? []
+            completion(classes, nil)
         }
     }
-    
+
+    // Update existing createClassForTeacher method
     func createClassForTeacher(teacherId: String, name: String, completion: @escaping (Error?) -> Void) {
-        let newClass = SchoolClass(id: UUID().uuidString, name: name, students: [])
-        let classRef = db.collection("classes").document(newClass.id)
-        let teacherRef = db.collection("teachers").document(teacherId)
-
-        classRef.setData([
-            "id": newClass.id,
-            "name": name,
-            "teacherId": teacherId,
-            "students": []
-        ]) { error in
-            if let error = error {
-                completion(error)
-                return
-            }
-
-            teacherRef.updateData([
-                "classes": FieldValue.arrayUnion([newClass.id])
-            ]) { error in
-                if error == nil {
-                    self.classes.append(newClass) // UI için güncelleme
-                }
-                completion(error)
-            }
-        }
+        let newClass = SchoolClass(id: UUID().uuidString, name: name, teacherId: teacherId, students: [])
+        addClass(newClass, completion: completion)
     }
     
     func fetchStudentsForClass(classId: String, completion: @escaping ([Student]?, Error?) -> Void) {

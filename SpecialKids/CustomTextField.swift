@@ -18,7 +18,7 @@ struct CustomTextField: View {
             .padding() // İç boşluk
             .frame(maxWidth: .infinity) // Genişliği tam ekran yapar
             .background(backgroundColor) // Arka plan rengi
-            .cornerRadius(10) // Köşe yuvarlama
+            .cornerRadius(250) // Köşe yuvarlama
             .shadow(radius: 1) // Gölgeleme
             .foregroundColor(.black) // Yazı rengi siyah
             .textFieldStyle(PlainTextFieldStyle()) // Basit metin alanı stili
