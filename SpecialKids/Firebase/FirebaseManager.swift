@@ -52,7 +52,6 @@ class FirebaseManager: ObservableObject {
                 }
             }
     }
-
     // MARK: - Öğrencinin Velisini Al
     func fetchParentForStudent(studentId: String, completion: @escaping (String?) -> Void) {
         db.collection("parents").whereField("children", arrayContains: studentId).getDocuments { snapshot, error in
@@ -70,7 +69,6 @@ class FirebaseManager: ObservableObject {
             }
         }
     }
-
     // MARK: - Çocuk Ekleme (Parents kısmına da eklenmesi gerek)
     func addChildToParent(userId: String, childId: String, childName: String, age: Int, completion: @escaping (Error?) -> Void) {
         let child = Student(id: childId, name: childName, age: age)
@@ -95,7 +93,8 @@ class FirebaseManager: ObservableObject {
         } catch {
             completion(error)
         }
-    }    // MARK: - Sınıf Yükleme
+    }
+    // MARK: - Sınıf Yükleme
     func fetchClasses(completion: @escaping (Error?) -> Void) {
         db.collection("classes").addSnapshotListener { snapshot, error in
             if let error = error {
@@ -108,7 +107,6 @@ class FirebaseManager: ObservableObject {
             completion(nil)
         }
     }
-    
     // MARK: - Ödev İşlemleri
     func assignHomework(homework: Homework, completion: @escaping (Error?) -> Void) {
         let homeworkData: [String: Any] = [
@@ -124,7 +122,6 @@ class FirebaseManager: ObservableObject {
             completion(error)
         }
     }
-
     func fetchAssignmentsForStudent(studentId: String, completion: @escaping ([Assignment]?, Error?) -> Void) {
         let db = Firestore.firestore() // Firestore bağlantısı
 
@@ -157,7 +154,6 @@ class FirebaseManager: ObservableObject {
                 completion(assignments, nil)
             }
     }
-
     func fetchHomeworks(for parentId: String, completion: @escaping ([Homework]?, Error?) -> Void) {
         // Önce ebeveynin çocuklarını çek
         fetchChildren(for: parentId) { children, error in
@@ -188,7 +184,6 @@ class FirebaseManager: ObservableObject {
             }
         }
     }
-    
     // MARK: - Öğrenci Ekleme
     func addStudentToClass(classId: String, studentId: String, completion: @escaping (Error?) -> Void) {
         let classRef = db.collection("classes").document(classId)
@@ -207,7 +202,6 @@ class FirebaseManager: ObservableObject {
             }
         }
     }
-    
     func addClass(_ schoolClass: SchoolClass, completion: @escaping (Error?) -> Void) {
         let db = Firestore.firestore()
         db.collection("classes").document(schoolClass.id).setData([
@@ -222,7 +216,6 @@ class FirebaseManager: ObservableObject {
             completion(error)
         }
     }
-
     func deleteClass(classId: String, completion: @escaping (Error?) -> Void) {
         let db = Firestore.firestore()
         db.collection("classes").document(classId).delete { error in
@@ -232,8 +225,6 @@ class FirebaseManager: ObservableObject {
             completion(error)
         }
     }
-
-    // Update existing fetchClassesForTeacher method
     func fetchClassesForTeacher(teacherId: String, completion: @escaping ([SchoolClass]?, Error?) -> Void) {
         db.collection("classes").whereField("teacherId", isEqualTo: teacherId).getDocuments { snapshot, error in
             if let error = error {
@@ -245,13 +236,10 @@ class FirebaseManager: ObservableObject {
             completion(classes, nil)
         }
     }
-
-    // Update existing createClassForTeacher method
     func createClassForTeacher(teacherId: String, name: String, completion: @escaping (Error?) -> Void) {
         let newClass = SchoolClass(id: UUID().uuidString, name: name, teacherId: teacherId, students: [])
         addClass(newClass, completion: completion)
     }
-    
     func fetchStudentsForClass(classId: String, completion: @escaping ([Student]?, Error?) -> Void) {
         db.collection("classes").document(classId).getDocument { document, error in
             if let error = error {
@@ -280,7 +268,6 @@ class FirebaseManager: ObservableObject {
             }
         }
     }
-    
     func getStudentById(id: String, completion: @escaping (Student?) -> Void) {
         db.collection("students").document(id).getDocument { document, error in
             if let error = error {
@@ -302,7 +289,6 @@ class FirebaseManager: ObservableObject {
             }
         }
     }
-    
     // MARK: - Öğrenci İsmi Getirme
     func getStudentName(by id: String, completion: @escaping (String?) -> Void) {
         db.collection("students").document(id).getDocument { document, error in
@@ -318,12 +304,10 @@ class FirebaseManager: ObservableObject {
             }
         }
     }
-
     // MARK: - 6 Haneli Öğrenci ID Üretimi
     func generateRandomChildId() -> String {
         return String(format: "%06d", Int.random(in: 0...999999))
     }
-
     // MARK: - Öğrenci Ekleme
     func addStudent(name: String, age: Int, completion: @escaping (Error?) -> Void) {
         let studentId = generateRandomChildId() // Otomatik 6 haneli ID oluşturuluyor
@@ -338,7 +322,6 @@ class FirebaseManager: ObservableObject {
             completion(error)
         }
     }
-
     func signUp(email: String, password: String, role: String, completion: @escaping (Error?) -> Void) {
         auth.createUser(withEmail: email, password: password) { authResult, error in
             if let error = error {
@@ -371,7 +354,6 @@ class FirebaseManager: ObservableObject {
             self?.fetchCurrentUserRole(completion: completion)
         }
     }
-
     func fetchCurrentUserRole(completion: @escaping (Error?) -> Void) {
         guard let userId = auth.currentUser?.uid else { return }
 
@@ -405,7 +387,6 @@ class FirebaseManager: ObservableObject {
             }
         }
     }
-
     func signOut() {
         do {
             try auth.signOut()
