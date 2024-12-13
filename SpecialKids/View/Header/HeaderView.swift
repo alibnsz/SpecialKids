@@ -31,7 +31,7 @@ struct HeaderView: View {
                 Button(action: {
                     onUsersButtonTapped() // Kullanıcılar butonuna basılınca çağrılan fonksiyon
                 }) {
-                    Image(systemName: "person.2")
+                    Image(systemName: "magnifyingglass")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 20, height: 20)

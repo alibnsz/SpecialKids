@@ -7,21 +7,29 @@
 
 import SwiftUI
 
-struct CustomTextField: View {
-    var placeholder: String // Placeholder metni
-    var backgroundColor: Color // Arka plan rengi
-    @Binding var text: String // TextField'in bağlandığı metin değişkeni
 
+struct CustomTextField: View {
+    var placeholder: String
+    @Binding var text: String
+    @FocusState var isTyping: Bool
     var body: some View {
-        TextField(placeholder, text: $text)
-            .font(.custom(outfitLight, size: 18))
-            .padding() // İç boşluk
-            .frame(maxWidth: .infinity) // Genişliği tam ekran yapar
-            .background(backgroundColor) // Arka plan rengi
-            .cornerRadius(250) // Köşe yuvarlama
-            .shadow(radius: 1) // Gölgeleme
-            .foregroundColor(.black) // Yazı rengi siyah
-            .textFieldStyle(PlainTextFieldStyle()) // Basit metin alanı stili
-            .accentColor(.black)
+        ZStack(alignment: .leading) {
+            TextField("", text: $text)
+                .padding(.leading)
+                .frame(width: 350, height: 50)
+                .focused($isTyping)
+                .background(isTyping ? Color("SoftBlue") : Color.primary, in: RoundedRectangle(cornerRadius: 50).stroke(lineWidth: 0.5))
+            Text(placeholder)
+                .padding(.horizontal, 5)
+                .background(.white.opacity(isTyping || !text.isEmpty ? 1 : 0))
+                .foregroundStyle(isTyping ? Color("SoftBlue") : Color("OilBlack").opacity(0.5))
+                .padding(.leading)
+                .offset(y: isTyping || !text.isEmpty ? -27 : 0)
+
+        }
+        .animation(.linear(duration: 0.2), value: isTyping)
     }
+}
+#Preview {
+    LoginView()
 }

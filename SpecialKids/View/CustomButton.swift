@@ -15,10 +15,10 @@ struct CustomButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.custom(outfitLight, size: 20))
+                .font(.custom(outfitLight, size: 16))
                 .foregroundColor(.white) // Başlık rengi beyaz
                 .padding() // İç boşluk
-                .frame(maxWidth: .infinity) // Butonun genişliğini tam ekran yapar
+                .frame(width: 350, height: 50) // Butonun genişliğini tam ekran yapar
                 .background(backgroundColor) // Arka plan rengi
                 .cornerRadius(150) // Köşe yuvarlama
                 .shadow(radius: 5) // Gölgeleme
@@ -26,4 +26,6 @@ struct CustomButton: View {
         .buttonStyle(PlainButtonStyle()) // Standart buton stili
     }
 }
-
+#Preview {
+    LoginView()
+}
