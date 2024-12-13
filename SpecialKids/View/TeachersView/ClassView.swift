@@ -20,78 +20,95 @@ struct ClassView: View {
                 
             }
 
-            Button(action: {
-                showClassManagement = true
-            }) {
-                Text(selectedClass?.name ?? "Sınıflarım")
-                    .font(.custom(outfitMedium, size: 24))
-                    .padding(.top)
-            }
-            .padding(.horizontal)
-
-            if selectedClass != nil {
-                // Add Student Button
-                Button(action: {
-                    showAddStudentSheet = true
-                }) {
-                    HStack {
-                        Image(systemName: "plus.circle")
-                        Text("Daha fazla öğrenci ekle")
+            HStack(spacing: 12) {
+                if selectedClass != nil {
+                    Button(action: {
+                        showAddStudentSheet = true
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle")
+                            Text("Daha fazla öğrenci ekle")
+                        }
+                        .font(.custom(outfitLight, size: 16))
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
                     }
-                    .font(.custom(outfitLight, size: 16))
-                    .foregroundColor(.gray)
                 }
                 
-                // Students Grid
-                ScrollView {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 20) {
-                        ForEach(studentsInClass) { student in
-                            VStack {
-                                Image("boy")
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(Circle())
-                                
-                                Text(student.name)
-                                    .font(.custom(outfitMedium, size: 16))
-                                
-                                Text(student.id)
-                                    .font(.custom(outfitLight, size: 12))
-                                    .foregroundColor(.gray)
-                            }
-                            .onTapGesture {
-                                selectedStudent = student
-                                showHomeworkSheet = true
-                            }
-                        }
-                    }
-                    .padding()
+                Button(action: {
+                    showClassManagement = true
+                }) {
+                    Text(selectedClass?.name ?? "Sınıflarım")
+                        .font(.custom(outfitMedium, size: 16))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
                 }
-            } else {
+            }
+            .padding(.horizontal)
+            
+            if selectedClass == nil {
                 Text("Lütfen bir sınıf seçin veya oluşturun")
                     .font(.custom(outfitLight, size: 18))
                     .foregroundColor(.gray)
                     .padding()
             }
+            
+            ScrollView {
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 20) {
+                    ForEach(studentsInClass) { student in
+                        VStack {
+                            Image("boy")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .clipShape(Circle())
+                            
+                            Text(student.name)
+                                .font(.custom(outfitMedium, size: 16))
+                            
+                            Text(student.id)
+                                .font(.custom(outfitLight, size: 12))
+                                .foregroundColor(.gray)
+                        }
+                        .onTapGesture {
+                            selectedStudent = student
+                            showHomeworkSheet = true
+                        }
+                    }
+                }
+                .padding()
+            }
         }
         .sheet(isPresented: $showAddStudentSheet) {
             if let selectedClass = selectedClass {
                 AddStudentSheet(schoolClass: selectedClass) {
-                    fetchStudentsForClass()
+                    fetchStudentsForClass(classId: selectedClass.id)
                 }
-                .presentationDetents([.fraction(0.5)])
+                .presentationDetents([.fraction(0.40)])
             }
         }
         .sheet(isPresented: $showClassManagement) {
-            ClassManagementView()
+            ClassManagementView(selectedClass: $selectedClass)
                 .onDisappear {
-                    fetchTeacherClasses()
+                    if let selectedClass = selectedClass {
+                        fetchStudentsForClass(classId: selectedClass.id)
+                    }
                 }
+                .presentationDetents([.fraction(0.6)])
         }
         .sheet(isPresented: $showHomeworkSheet) {
             if let student = selectedStudent {
@@ -108,8 +125,7 @@ struct ClassView: View {
         }
     }
     
-    private func fetchStudentsForClass() {
-        guard let classId = selectedClass?.id else { return }
+    private func fetchStudentsForClass(classId: String) {
         firebaseManager.fetchStudentsForClass(classId: classId) { students, error in
             if let students = students {
                 studentsInClass = students
@@ -124,9 +140,10 @@ struct ClassView: View {
                 teacherClasses = classes
                 if selectedClass == nil, let firstClass = classes.first {
                     selectedClass = firstClass
-                    fetchStudentsForClass()
+                    fetchStudentsForClass(classId: firstClass.id)
                 }
             }
         }
     }
 }
+

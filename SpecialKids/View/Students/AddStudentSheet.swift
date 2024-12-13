@@ -6,19 +6,16 @@ struct AddStudentSheet: View {
     @State private var errorMessage = ""
     var onAddStudent: () -> Void
     @Environment(\.presentationMode) var presentationMode
-
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                Text("Öğrenci ID'si")
-                    .font(.custom(outfitMedium, size: 24))
-                
-                Text("Lütfen 6 haneli öğrenci ID'sini giriniz. 😊")
+
+                Text("Lütfen öğrencinin 6 haneli ID'sini aşağıdaki alana giriniz. 😊")
                     .font(.custom(outfitLight, size: 16))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 
-                CustomTextField(placeholder: "Öğrenci ID", backgroundColor: .white, text: $studentId)
+                CustomTextField(placeholder: "Öğrenci ID", text: $studentId)
                     .padding(.horizontal)
                 
                 if !errorMessage.isEmpty {
@@ -37,6 +34,7 @@ struct AddStudentSheet: View {
             .navigationBarItems(trailing: Button("Kapat") {
                 presentationMode.wrappedValue.dismiss()
             })
+            .foregroundStyle(.black)
         }
         .onAppear {
             print("AddStudentSheet appeared for class: \(schoolClass.name)")
@@ -69,4 +67,7 @@ struct AddStudentSheet: View {
             }
         }
     }
+}
+#Preview {
+    ClassView()
 }

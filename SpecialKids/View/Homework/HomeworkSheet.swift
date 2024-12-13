@@ -64,7 +64,7 @@ struct HomeworkSheet: View {
                 .font(.title2)
                 .fontWeight(.bold)
             
-            CustomTextField(placeholder: "Odev Basligi", backgroundColor: .white, text: $homeworkTitle)
+            CustomTextField(placeholder: "Odev Basligi", text: $homeworkTitle)
             TextEditor(text: $homeworkDescription)
                 .frame(height: 100)
                 .overlay(
