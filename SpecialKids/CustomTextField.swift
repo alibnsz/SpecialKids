@@ -8,26 +8,44 @@
 import SwiftUI
 
 
+import SwiftUI
+
 struct CustomTextField: View {
     var placeholder: String
     @Binding var text: String
-    @FocusState var isTyping: Bool
+    @FocusState var focused: Bool
     var body: some View {
-        ZStack(alignment: .leading) {
+        let isActive = focused || text.count > 0
+        
+        ZStack(alignment: isActive ? .topLeading : .center) {
             TextField("", text: $text)
-                .padding(.leading)
-                .frame(width: 350, height: 50)
-                .focused($isTyping)
-                .background(isTyping ? Color("SoftBlue") : Color.primary, in: RoundedRectangle(cornerRadius: 50).stroke(lineWidth: 0.5))
-            Text(placeholder)
-                .padding(.horizontal, 5)
-                .background(.white.opacity(isTyping || !text.isEmpty ? 1 : 0))
-                .foregroundStyle(isTyping ? Color("SoftBlue") : Color("OilBlack").opacity(0.5))
-                .padding(.leading)
-                .offset(y: isTyping || !text.isEmpty ? -27 : 0)
-
+                .frame(height: 24)
+                .font(.system(size: 16, weight: .regular))
+                .opacity(isActive ? 1 : 0)
+                .offset(y: 7)
+                .focused($focused)
+            
+            HStack {
+                Text(placeholder)
+                    .foregroundColor(.black.opacity(0.3))
+                    .frame(height: 16)
+                    .font(.system(size: isActive ? 12 : 16, weight: .regular))
+                    .offset(y: isActive ? -7 : 0)
+                Spacer()
+            }
         }
-        .animation(.linear(duration: 0.2), value: isTyping)
+        .onTapGesture {
+            focused = true
+        }
+        .animation(.linear(duration: 0.1), value: focused)
+        .frame(height: 50)
+        .padding(.horizontal, 16)
+        .background(.white)
+        .cornerRadius(50)
+        .overlay {
+            RoundedRectangle(cornerRadius: 50)
+                .stroke(focused ? .black.opacity(0.6) : .black.opacity(0.2), lineWidth: 1)
+        }
     }
 }
 #Preview {

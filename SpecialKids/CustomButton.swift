@@ -15,12 +15,12 @@ struct CustomButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.custom(outfitLight, size: 16))
+                .font(.custom(outfitMedium, size: 16))
                 .foregroundColor(.white) // Başlık rengi beyaz
                 .padding() // İç boşluk
                 .frame(width: 350, height: 50) // Butonun genişliğini tam ekran yapar
                 .background(backgroundColor) // Arka plan rengi
-                .cornerRadius(150) // Köşe yuvarlama
+                .cornerRadius(50) // Köşe yuvarlama
                 .shadow(radius: 5) // Gölgeleme
         }
         .buttonStyle(PlainButtonStyle()) // Standart buton stili
