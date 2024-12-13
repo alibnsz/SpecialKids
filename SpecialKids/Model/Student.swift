@@ -27,4 +27,8 @@ struct SchoolClass: Identifiable, Codable {
         self.teacherId = teacherId
         self.students = students
     }
+    
+    static func == (lhs: SchoolClass, rhs: SchoolClass) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
