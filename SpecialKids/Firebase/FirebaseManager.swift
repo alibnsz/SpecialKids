@@ -322,7 +322,7 @@ class FirebaseManager: ObservableObject {
             completion(error)
         }
     }
-    func signUp(email: String, password: String, role: String, completion: @escaping (Error?) -> Void) {
+    func signUp(name: String, phone: String, email: String, password: String, role: String, completion: @escaping (Error?) -> Void) {
         auth.createUser(withEmail: email, password: password) { authResult, error in
             if let error = error {
                 completion(error)
@@ -337,6 +337,8 @@ class FirebaseManager: ObservableObject {
             // Rol bilgisine göre Firestore'da kullanıcıyı kaydedelim
             let userRef = self.db.collection(role).document(userId)
             userRef.setData([
+                "name": name,
+                "phone": phone,
                 "email": email,
                 "role": role
             ]) { error in
