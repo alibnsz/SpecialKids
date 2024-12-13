@@ -35,11 +35,11 @@ struct LoginView: View {
                 .foregroundStyle(Color("SoftBlue").opacity(0.8))
                 .padding(.top, -5)
 
-            CustomTextField(placeholder: "Email", backgroundColor: .white, text: $email)
+            CustomTextField(placeholder: "Email", text: $email)
                 .padding(.vertical, 5)
                 .padding(.horizontal, 10)
             
-            CustomTextField(placeholder: "Sifre", backgroundColor: .white, text: $password)
+            CustomTextField(placeholder: "Sifre", text: $password)
                 .padding(.vertical, 5)
                 .padding(.horizontal, 10)
             
