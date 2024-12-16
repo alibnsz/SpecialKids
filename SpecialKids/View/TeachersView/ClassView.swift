@@ -61,13 +61,20 @@ struct ClassView: View {
                             ForEach(studentsInClass) { student in
                                 NavigationLink(destination: HomeworkSheet(student: student)) {
                                     VStack(spacing: 8) {
-                                        Image(systemName: "person.circle.fill")
+                                        Image("girl")
                                             .resizable()
                                             .aspectRatio(contentMode: .fill)
                                             .frame(width: 80, height: 80)
-                                            .foregroundColor(Color("OilBlack"))
-                                            .background(Circle().fill(Color.white))
-                                            .shadow(color: Color.black.opacity(0.1), radius: 5)
+                                            .clipShape(Circle())
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(Color.white, lineWidth: 2)
+                                            )
+                                            .background(
+                                                Circle()
+                                                    .fill(Color.white)
+                                                    .shadow(color: Color.black.opacity(0.1), radius: 5)
+                                            )
                                         
                                         Text(student.name)
                                             .font(.custom("Outfit-Medium", size: 16))
