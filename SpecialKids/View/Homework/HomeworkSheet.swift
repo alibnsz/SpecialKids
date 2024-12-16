@@ -2,141 +2,246 @@ import SwiftUI
 
 struct HomeworkSheet: View {
     let student: Student
-    @Binding var homeworkTitle: String
-    @Binding var homeworkDescription: String
-    @State private var isHomeworkSent = false
-    @State private var showAnimation = false
-    @State private var dueDate = Date()
     @Environment(\.dismiss) private var dismiss
+    @State private var homeworkTitle = ""
+    @State private var homeworkDescription = ""
+    @State private var dueDate = Date()
+    @State private var isLoading = false
     @State private var showAlert = false
     @State private var alertMessage = ""
-
+    @State private var showSuccessAnimation = false
+    
+    var isFormValid: Bool {
+        !homeworkTitle.isEmpty && !homeworkDescription.isEmpty
+    }
+    
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    studentInfoSection
-                    homeworkFormSection
-                    if showAnimation {
-                        LottieView(name: "success")
-                            .frame(width: 200, height: 200)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 24) {
+                StudentInfoSection(student: student)
+                
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Ödev Detayları")
+                        .font(.custom("Outfit-Bold", size: 20))
+                        .foregroundColor(Color("OilBlack"))
+                    
+                    // Başlık
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Başlık")
+                            .font(.custom("Outfit-Medium", size: 14))
+                            .foregroundColor(.gray)
+                        CustomTextField(
+                            placeholder: "Ödev başlığını girin",
+                            text: $homeworkTitle
+                        )
                     }
-                }
-                .padding()
-            }
-            .navigationTitle("Ödev Ver")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Kapat") {
-                        dismiss()
+                    
+                    // Açıklama
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Açıklama")
+                            .font(.custom("Outfit-Medium", size: 14))
+                            .foregroundColor(.gray)
+                        TextEditor(text: $homeworkDescription)
+                            .font(.custom("Outfit-Regular", size: 16))
+                            .frame(height: 120)
+                            .padding(12)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(10)
+                            .overlay(
+                                Group {
+                                    if homeworkDescription.isEmpty {
+                                        Text("Ödev açıklamasını girin")
+                                            .font(.custom("Outfit-Regular", size: 16))
+                                            .foregroundColor(.gray)
+                                            .padding(.leading, 16)
+                                            .padding(.top, 16)
+                                    }
+                                },
+                                alignment: .topLeading
+                            )
                     }
+                    
+                    // Teslim Tarihi
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Teslim Tarihi")
+                            .font(.custom("Outfit-Medium", size: 14))
+                            .foregroundColor(.gray)
+                        DatePicker(
+                            "",
+                            selection: $dueDate,
+                            displayedComponents: [.date]
+                        )
+                        .datePickerStyle(.compact)
+                        .font(.custom("Outfit-Regular", size: 16))
+                        .accentColor(Color("OilBlack"))
+                    }
+                    
+                    CustomButtonView(
+                        title: "Ödev Gönder",
+                        isLoading: isLoading,
+                        disabled: !isFormValid,
+                        type: .primary
+                    ) {
+                        sendHomework()
+                    }
+                    .padding(.top, 8)
                 }
             }
+            .padding(20)
         }
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Bilgi"), message: Text(alertMessage), dismissButton: .default(Text("Tamam")))
-        }
-    }
-
-    private var studentInfoSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Öğrenci Bilgileri")
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            HStack {
-                VStack(alignment: .leading) {
-                    InfoRow(title: "Ad", value: student.name)
-                    InfoRow(title: "ID", value: student.id)
-                    InfoRow(title: "Yaş", value: "\(student.age)")
+        .navigationTitle("Ödev Ver")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Bilgi", isPresented: $showAlert) {
+            Button("Tamam", role: .cancel) {
+                if !alertMessage.contains("hata") {
+                    dismiss()
                 }
             }
+        } message: {
+            Text(alertMessage)
         }
-        .padding()
-        .background(Color(.systemBackground))
-
     }
-
-    private var homeworkFormSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Text("Ödev Detayları")
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            CustomTextField(placeholder: "Odev Basligi", text: $homeworkTitle)
-            TextEditor(text: $homeworkDescription)
-                .frame(height: 100)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
-            DatePicker("Teslim Tarihi", selection: $dueDate, displayedComponents: .date)
-
-            CustomButton(title: "Gonder", backgroundColor: Color("OilBlack")) {
-                sendHomework()
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-
-    }
+    
     private func sendHomework() {
-        guard !homeworkTitle.isEmpty, !homeworkDescription.isEmpty else {
-            alertMessage = "Ödev başlığı ve açıklaması boş olamaz!"
-            showAlert = true
-            return
-        }
-
-        let homework = Homework(id: UUID().uuidString, title: homeworkTitle, description: homeworkDescription, dueDate: dueDate, studentId: student.id)
-
+        isLoading = true
+        
+        let homework = Homework(
+            title: homeworkTitle,
+            description: homeworkDescription,
+            dueDate: dueDate,
+            studentId: student.id,
+            status: .pending
+        )
+        
         FirebaseManager.shared.assignHomework(homework: homework) { error in
+            isLoading = false
+            
             if let error = error {
                 alertMessage = "Ödev gönderilirken hata oluştu: \(error.localizedDescription)"
-                showAlert = true
             } else {
-                isHomeworkSent = true
-                showAnimation = true
                 alertMessage = "Ödev başarıyla gönderildi!"
-                showAlert = true
-                // Reset form
-                homeworkTitle = ""
-                homeworkDescription = ""
-                dueDate = Date()
-                // Hide animation after delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    showAnimation = false
-                }
+                showSuccessAnimation = true
             }
+            showAlert = true
         }
     }
 }
 
-struct InfoRow: View {
-    let title: String
-    let value: String
+// MARK: - Supporting Views
+struct StudentInfoSection: View {
+    let student: Student
     
     var body: some View {
-        HStack {
-            Text(title + ":")
-                .fontWeight(.medium)
-            Text(value)
-                .fontWeight(.regular)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Öğrenci Bilgileri")
+                .font(.custom("Outfit-Bold", size: 20))
+                .foregroundColor(Color("OilBlack"))
+            
+            HStack(spacing: 12) {
+                Image(systemName: "person.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(Color("OilBlack"))
+                Text(student.name)
+                    .font(.custom("Outfit-Medium", size: 16))
+                    .foregroundColor(Color("OilBlack"))
+            }
+            
+            HStack(spacing: 12) {
+                Image(systemName: "number.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(Color("OilBlack"))
+                Text("ID: \(student.studentId)")
+                    .font(.custom("Outfit-Regular", size: 14))
+                    .foregroundColor(Color.gray.opacity(0.8))
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(12)
+    }
+}
+
+struct HomeworkFormSection: View {
+    @Binding var homeworkTitle: String
+    @Binding var homeworkDescription: String
+    @Binding var dueDate: Date
+    let isLoading: Bool
+    let isFormValid: Bool
+    let onSubmit: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Ödev Detayları")
+                .font(.custom("Outfit-Bold", size: 20))
+                .foregroundColor(Color("OilBlack"))
+            
+            FormField(title: "Başlık") {
+                CustomTextField(
+                    placeholder: "Ödev başlığını girin",
+                    text: $homeworkTitle
+                )
+            }
+            
+            FormField(title: "Açıklama") {
+                CustomTextField(
+                    placeholder: "Ödev açıklamasını girin",
+                    text: $homeworkDescription,
+                    isMultiline: true
+                )
+                .frame(height: 100)
+            }
+            
+            FormField(title: "Teslim Tarihi") {
+                DatePicker(
+                    "",
+                    selection: $dueDate,
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(.compact)
+                .font(.custom("Outfit-Regular", size: 16))
+                .accentColor(Color("OilBlack"))
+            }
+            
+            CustomButtonView(
+                title: "Ödev Gönder",
+                isLoading: isLoading,
+                disabled: !isFormValid,
+                type: .primary,
+                action: onSubmit
+            )
+            .padding(.top, 8)
         }
     }
 }
 
-struct LottieView: UIViewRepresentable {
-    var name: String
+struct FormField<Content: View>: View {
+    let title: String
+    let content: Content
     
-    func makeUIView(context: Context) -> some UIView {
-        let view = UIView()
-        // Here you would typically set up your Lottie animation
-        // For this example, we'll just use a placeholder
-        return view
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
     }
     
-    func updateUIView(_ uiView: UIViewType, context: Context) {
-        // Update the view if needed
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.custom("Outfit-Medium", size: 14))
+                .foregroundColor(Color.gray.opacity(0.8))
+            content
+        }
+    }
+}
+
+struct CloseButton: View {
+    let action: DismissAction
+    
+    var body: some View {
+        Button(action: { action() }) {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 24))
+                .foregroundColor(Color("OilBlack"))
+        }
     }
 }

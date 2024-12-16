@@ -1,70 +1,60 @@
 import SwiftUI
 
 struct AddStudentSheet: View {
-    let schoolClass: SchoolClass
+    @Environment(\.dismiss) var dismiss
     @State private var studentId = ""
-    @State private var errorMessage = ""
-    var onAddStudent: () -> Void
-    @Environment(\.presentationMode) var presentationMode
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    @State private var isLoading = false
+    let schoolClass: SchoolClass
+    var onStudentAdded: () -> Void
+    
+    var isFormValid: Bool {
+        !studentId.isEmpty
+    }
+    
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-
-                Text("Lütfen öğrencinin 6 haneli ID'sini aşağıdaki alana giriniz. 😊")
-                    .font(.custom(outfitLight, size: 16))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                
-                CustomTextField(placeholder: "Öğrenci ID", text: $studentId)
-                    .padding(.horizontal)
-                
-                if !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .font(.custom(outfitLight, size: 14))
-                }
-                
-                CustomButton(title: "Ekle", backgroundColor: Color("MandyPink")) {
-                    addStudent()
-                }
-                .padding(.horizontal)
+        VStack(spacing: 20) {
+            Text("Öğrenci ID'si Girin")
+                .font(.headline)
+            
+            CustomTextField(placeholder: "Öğrenci ID", text: $studentId)
+                .textInputAutocapitalization(.never)
+            
+            CustomButtonView(
+                title: "Ekle",
+                isLoading: isLoading,
+                disabled: !isFormValid,
+                type: .secondary
+            ) {
+                addStudent()
             }
-            .padding()
-            .navigationBarTitle("Öğrenci Ekle", displayMode: .inline)
-            .navigationBarItems(trailing: Button("Kapat") {
-                presentationMode.wrappedValue.dismiss()
-            })
-            .foregroundStyle(.black)
         }
-        .onAppear {
-            print("AddStudentSheet appeared for class: \(schoolClass.name)")
+        .padding()
+        .alert("Bilgi", isPresented: $showAlert) {
+            Button("Tamam", role: .cancel) {
+                if !alertMessage.contains("hata") {
+                    onStudentAdded()
+                    dismiss()
+                }
+            }
+        } message: {
+            Text(alertMessage)
         }
     }
     
     private func addStudent() {
-        print("Adding student with ID: \(studentId)")
-        guard !studentId.isEmpty else {
-            errorMessage = "Öğrenci ID'si boş olamaz."
-            return
-        }
+        isLoading = true
         
-        FirebaseManager.shared.getStudentById(id: studentId) { student in
-            if let student = student {
-                print("Student found: \(student.name)")
-                FirebaseManager.shared.addStudentToClass(classId: schoolClass.id, studentId: student.id) { error in
-                    if let error = error {
-                        print("Error adding student to class: \(error.localizedDescription)")
-                        errorMessage = "Öğrenci eklenirken bir hata oluştu."
-                    } else {
-                        print("Student added successfully")
-                        onAddStudent()
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
+        FirebaseManager.shared.addStudentToClass(classId: schoolClass.id, studentId: studentId) { error in
+            isLoading = false
+            
+            if let error = error {
+                alertMessage = error.localizedDescription
             } else {
-                print("Student not found")
-                errorMessage = "Öğrenci bulunamadı."
+                alertMessage = "Öğrenci başarıyla eklendi"
             }
+            showAlert = true
         }
     }
 }

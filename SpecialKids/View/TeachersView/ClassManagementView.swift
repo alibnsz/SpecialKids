@@ -6,8 +6,13 @@ struct ClassManagementView: View {
     @State private var newClassName = ""
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @State private var isLoading = false
     @Environment(\.presentationMode) var presentationMode
     @Binding var selectedClass: SchoolClass?
+    
+    var isFormValid: Bool {
+        !newClassName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         NavigationView {
@@ -18,51 +23,81 @@ struct ClassManagementView: View {
                 
                 // Existing classes dropdown
                 Menu {
-                    ForEach(classes) { schoolClass in
-                        Button(action: {
-                            selectedClass = schoolClass
-                            presentationMode.wrappedValue.dismiss()
-                        }) {
-                            Text(schoolClass.name)
+                    if classes.isEmpty {
+                        Text("Henüz sınıf yok")
+                            .font(.custom(outfitLight, size: 16))
+                            .foregroundColor(.gray)
+                    } else {
+                        ForEach(classes) { schoolClass in
+                            Button(action: {
+                                selectedClass = schoolClass
+                                presentationMode.wrappedValue.dismiss()
+                            }) {
+                                Text(schoolClass.name)
+                                    .font(.custom(outfitRegular, size: 16))
+                            }
                         }
                     }
                 } label: {
                     HStack {
                         Text(selectedClass?.name ?? "Sinif Adi")
-                            .font(.custom(outfitLight, size: 16))
-                            .foregroundColor(selectedClass == nil ? .gray : .black)
+                            .font(.custom(outfitRegular, size: 16))
+                            .foregroundColor(selectedClass == nil ? Color.gray.opacity(0.5) : Color.gray.opacity(0.9))
+                            .lineLimit(1)
                         Spacer()
                         Image(systemName: "chevron.down")
-                            .foregroundColor(.gray)
+                            .foregroundColor(Color("black"))
                     }
-                    .frame(width: 325, height: 50)
-                    .background(Color.white)
-                    .cornerRadius(25)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 55)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.1))
+                    )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 25)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color("black"), lineWidth: 1)
                     )
                 }
+                .disabled(isLoading)
+                .padding(.horizontal, 20)
 
                 Text("veya")
                     .font(.custom(outfitLight, size: 16))
                     .foregroundColor(.gray)
                 
-                Text("Sinif olusturmak icin asagidaki alan sinif adini girin.")
+                Text("Sinif olusturmak icin asagidaki alana sinif adini girin.")
                     .font(.custom(outfitLight, size: 16))
                     .multilineTextAlignment(.center)
                     .foregroundColor(.gray)
-                    .padding(.horizontal)
+                    .padding(.horizontal, 32)
+                    .fixedSize(horizontal: false, vertical: true)
                 
-                CustomTextField(placeholder: "Sinif Adi", text: $newClassName)
-                CustomButton(title: "Ekle", backgroundColor: Color("OilBlack")) {
-                    addClass()
+                VStack(spacing: 16) {
+                    CustomTextField(
+                        placeholder: "Sinif Adi",
+                        text: $newClassName
+                    )
+                    .disabled(isLoading)
+                    
+                    CustomButtonView(
+                        title: "Sınıf Oluştur",
+                        isLoading: isLoading,
+                        disabled: !isFormValid,
+                        type: .secondary
+                    ) {
+                        addClass()
+                    }
                 }
+                .padding(.horizontal, 20)
             }
             .navigationBarTitle("", displayMode: .inline)
             .navigationBarItems(trailing: Button("Kapat") {
                 presentationMode.wrappedValue.dismiss()
             })
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white)
         }
         .onAppear(perform: fetchClasses)
@@ -70,51 +105,44 @@ struct ClassManagementView: View {
             Alert(title: Text("Bilgi"), message: Text(alertMessage), dismissButton: .default(Text("Tamam")))
         }
     }
-
+    
+    private func addClass() {
+        guard isFormValid else { return }
+        
+        isLoading = true
+        guard let teacherId = firebaseManager.auth.currentUser?.uid else {
+            alertMessage = "Öğretmen bilgisi bulunamadı"
+            showAlert = true
+            isLoading = false
+            return
+        }
+        
+        firebaseManager.createClassForTeacher(teacherId: teacherId, name: newClassName) { error in
+            isLoading = false
+            
+            if let error = error {
+                alertMessage = "Sınıf oluşturulurken hata oluştu: \(error.localizedDescription)"
+            } else {
+                alertMessage = "Sınıf başarıyla oluşturuldu"
+                newClassName = ""
+                fetchClasses()
+            }
+            showAlert = true
+        }
+    }
+    
     private func fetchClasses() {
         guard let teacherId = firebaseManager.auth.currentUser?.uid else { return }
+        
+        isLoading = true
         firebaseManager.fetchClassesForTeacher(teacherId: teacherId) { fetchedClasses, error in
+            isLoading = false
+            
             if let error = error {
                 alertMessage = "Sınıflar yüklenirken hata oluştu: \(error.localizedDescription)"
                 showAlert = true
             } else if let fetchedClasses = fetchedClasses {
                 classes = fetchedClasses
-            }
-        }
-    }
-
-    private func addClass() {
-        guard !newClassName.isEmpty else { return }
-        guard let teacherId = firebaseManager.auth.currentUser?.uid else { return }
-
-        let newClass = SchoolClass(id: UUID().uuidString, name: newClassName, teacherId: teacherId)
-        firebaseManager.addClass(newClass) { error in
-            if let error = error {
-                alertMessage = "Sınıf eklenirken hata oluştu: \(error.localizedDescription)"
-                showAlert = true
-            } else {
-                classes.append(newClass)
-                selectedClass = newClass
-                newClassName = ""
-                alertMessage = "Sınıf başarıyla eklendi."
-                showAlert = true
-            }
-        }
-    }
-
-    private func deleteClass(at offsets: IndexSet) {
-        offsets.forEach { index in
-            let classToDelete = classes[index]
-            firebaseManager.deleteClass(classId: classToDelete.id) { error in
-                if let error = error {
-                    alertMessage = "Sınıf silinirken hata oluştu: \(error.localizedDescription)"
-                    showAlert = true
-                } else {
-                    classes.remove(at: index)
-                    if selectedClass! == classToDelete {
-                        selectedClass = nil
-                    }
-                }
             }
         }
     }
