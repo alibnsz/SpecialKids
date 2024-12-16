@@ -1,24 +1,18 @@
 //
-//  HomeWork.swift
+//  HomeworkStatus.swift
 //  SpecialKids
 //
-//  Created by Mehmet Ali Bunsuz on 23.11.2024.
+//  Created by Mehmet Ali Bunsuz on 16.12.2024.
 //
+
+
 import Foundation
 import FirebaseFirestore
 
-enum HomeworkStatus: String, Codable, CaseIterable {
+enum HomeworkStatus: String, Codable {
     case pending = "pending"
     case completed = "completed"
     case late = "late"
-    
-    var displayName: String {
-        switch self {
-        case .pending: return "Bekliyor"
-        case .completed: return "Tamamlandı"
-        case .late: return "Gecikti"
-        }
-    }
 }
 
 struct Homework: Identifiable, Codable {
