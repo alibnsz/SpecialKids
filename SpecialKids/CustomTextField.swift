@@ -7,9 +7,6 @@
 
 import SwiftUI
 
-
-import SwiftUI
-
 struct CustomTextField: View {
     var placeholder: String
     @Binding var text: String
@@ -41,10 +38,9 @@ struct CustomTextField: View {
         .frame(height: 50)
         .padding(.horizontal, 16)
         .background(.white)
-        .cornerRadius(50)
         .overlay {
-            RoundedRectangle(cornerRadius: 50)
-                .stroke(focused ? .black.opacity(0.6) : .black.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(focused ? .black.opacity(0.6) : .black.opacity(0.2), lineWidth: 0.5)
         }
     }
 }

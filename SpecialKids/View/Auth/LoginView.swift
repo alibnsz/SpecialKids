@@ -5,6 +5,7 @@
 //  Created by Mehmet Ali Bunsuz on 22.11.2024.
 //
 
+
 import SwiftUI
 
 struct LoginView: View {
@@ -23,31 +24,34 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Hosgeldiniz")
-                        .font(.custom(outfitMedium, size: 36))
-                    Text("Giriş yaparak hesabınıza ulaşın ve kaldığınız yerden devam edin.")
-                        .font(.custom(outfitLight, size: 16))
-                        .foregroundColor(.gray)
-                        .lineSpacing(4)
+            VStack(spacing: 20) {
+                Spacer()
+                // Lock Icon
+
+                    Image("logo-transparent")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                
+                Text("Hosgeldiniz")
+                    .font(.custom(outfitLight, size: 34))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Text("Giris Yaparak hesabiniza ulasin ve kaldiginiz yerden devam edin.")
+                    .font(.custom(outfitThin, size: 14))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                
+                    CustomTextField(placeholder: "Email", text: $email)
+                    CustomTextField(placeholder: "Password", text: $password)
+                
+                
+                Button("Parolani mi unuttun?") {
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 32)
+                .foregroundColor(Color.gray)
+                .font(.custom(outfitMedium, size: 14))
+                .frame(maxWidth: .infinity, alignment: .trailing)
                 
-                CustomTextField(placeholder: "Email", text: $email)
-                CustomTextField(placeholder: "Password", text: $password)
-                
-                HStack {
-                    Spacer()
-                    Button("Forget password?") {
-                        // Handle forgot password
-                    }
-                    .foregroundColor(Color("SoftBlue"))
-                    .font(.custom(outfitLight, size: 16))
-                }
-                
-                CustomButton(title: isLoading ? "Yükleniyor..." : "Giris Yap", backgroundColor: Color("SoftBlue")) {
+                CustomButton(title: isLoading ? "Loading..." : "Giris Yap", backgroundColor: Color("BittersweetOrange")) {
                     if email.isEmpty || password.isEmpty {
                         errorMessage = "Lütfen tüm alanları doldurun."
                         return
@@ -74,39 +78,69 @@ struct LoginView: View {
                 }
                 .disabled(isLoading)
                 
-                Text("veya")
-                    .font(.custom(outfitLight, size: 16))
-                    .foregroundColor(.gray)
-                    .padding(.vertical)
-                
-                CustomButton(title: "Apple ile devam et", backgroundColor: Color("OilBlack")) {}
-                CustomButton(title: "Google ile devam et", backgroundColor: Color("BittersweetOrange")) {}
-
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
+                        .font(.system(size: 14))
                         .padding(.top, 5)
                 }
                 
+                HStack {
+                    VStack { Divider().background(Color.gray.opacity(0.5)) }
+                    Text("veya")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                    VStack { Divider().background(Color.gray.opacity(0.5)) }
+                }
+                .padding(.vertical, 20)
+                
+                HStack(spacing: 20) {
+                    SocialLoginButton(image: Image("google"))
+                    SocialLoginButton(image: Image(systemName: "apple.logo")).foregroundStyle(.black)
+                }
                 Spacer()
                 
-                NavigationLink(destination: SignUpView()) {
-                    HStack {
-                        Text("Henuz bir hesabin yok mu?")
-                            .foregroundColor(.gray)
+                HStack {
+                    Text("Henuz bir hesabin yok mu?")
+                    
+                        .foregroundColor(.gray)
+                    NavigationLink(destination: SignUpView()) {
                         Text("Kayit Ol")
-                            .foregroundColor(Color("SoftBlue"))
+                            .foregroundColor(Color("BittersweetOrange"))
                     }
-                    .font(.custom(outfitLight, size: 18))
                 }
+                .font(.custom(outfitMedium, size: 16))
             }
             .padding(24)
-            .background(Color(uiColor: .systemBackground))
+            .background(Color(UIColor.white))
+            .edgesIgnoringSafeArea(.all)
         }
     }
 }
 
-#Preview {
-    LoginView()
+struct SocialLoginButton: View {
+    let image: Image
+    
+    var body: some View {
+        Button(action: {
+            // Handle social login
+        }) {
+            image
+                .resizable()
+                .scaledToFit()
+                .frame(width: 45, height: 45)
+                .frame(width: 90, height: 90)
+                .background(Color.white)
+                .cornerRadius(15)
+        }
+        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
+}
+
+
+struct LoginView_Previews: PreviewProvider {
+    static var previews: some View {
+        LoginView()
+    }
 }
 

@@ -20,7 +20,7 @@ struct CustomButton: View {
                 .padding() // İç boşluk
                 .frame(width: 350, height: 50) // Butonun genişliğini tam ekran yapar
                 .background(backgroundColor) // Arka plan rengi
-                .cornerRadius(50) // Köşe yuvarlama
+                .cornerRadius(10) // Köşe yuvarlama
                 .shadow(radius: 5) // Gölgeleme
         }
         .buttonStyle(PlainButtonStyle()) // Standart buton stili
