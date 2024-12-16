@@ -10,6 +10,7 @@ import SwiftUI
 struct HeaderView: View {
     // Profil fotoğrafı ve ikonları için değişkenler
     let profileImage: Image
+    var name: String
     let onUsersButtonTapped: () -> Void
     let onNotificationsButtonTapped: () -> Void
 
@@ -22,6 +23,7 @@ struct HeaderView: View {
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.gray.opacity(0.3), lineWidth: 1))
                 .padding(.leading)
+            Text(name)
 
             Spacer()
 

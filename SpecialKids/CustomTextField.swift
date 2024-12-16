@@ -8,40 +8,46 @@
 import SwiftUI
 
 struct CustomTextField: View {
-    var placeholder: String
+    let placeholder: String
     @Binding var text: String
-    @FocusState var focused: Bool
+    var isSecure: Bool = false
+    var isMultiline: Bool = false
+    
     var body: some View {
-        let isActive = focused || text.count > 0
-        
-        ZStack(alignment: isActive ? .topLeading : .center) {
-            TextField("", text: $text)
-                .frame(height: 24)
-                .font(.system(size: 16, weight: .regular))
-                .opacity(isActive ? 1 : 0)
-                .offset(y: 7)
-                .focused($focused)
-            
-            HStack {
-                Text(placeholder)
-                    .foregroundColor(.black.opacity(0.3))
-                    .frame(height: 16)
-                    .font(.system(size: isActive ? 12 : 16, weight: .regular))
-                    .offset(y: isActive ? -7 : 0)
-                Spacer()
+        Group {
+            if isSecure {
+                SecureField(placeholder, text: $text)
+                    .font(.custom("Outfit-Regular", size: 16))
+                    .padding()
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(10)
+            } else if isMultiline {
+                TextEditor(text: $text)
+                    .font(.custom("Outfit-Regular", size: 16))
+                    .padding()
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(10)
+                    .overlay(
+                        Group {
+                            if text.isEmpty {
+                                Text(placeholder)
+                                    .font(.custom("Outfit-Regular", size: 16))
+                                    .foregroundColor(.gray)
+                                    .padding(.leading, 8)
+                                    .padding(.top, 8)
+                            }
+                        },
+                        alignment: .topLeading
+                    )
+            } else {
+                TextField(placeholder, text: $text)
+                    .font(.custom("Outfit-Regular", size: 16))
+                    .padding()
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(10)
             }
         }
-        .onTapGesture {
-            focused = true
-        }
-        .animation(.linear(duration: 0.1), value: focused)
-        .frame(height: 50)
-        .padding(.horizontal, 16)
-        .background(.white)
-        .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(focused ? .black.opacity(0.6) : .black.opacity(0.2), lineWidth: 0.5)
-        }
+        .autocapitalization(.none)
     }
 }
 #Preview {
