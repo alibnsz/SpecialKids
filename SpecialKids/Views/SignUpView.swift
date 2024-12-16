@@ -6,13 +6,20 @@ struct SignUpView: View {
     @Environment(\.dismiss) var dismiss
     @State private var email = ""
     @State private var password = ""
+    @State private var confirmPassword = ""
     @State private var fullName = ""
+    @State private var phoneNumber = ""
+    @State private var acceptTerms = false
     @State private var selectedRole = "parent"
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
     @State private var showTeacherExpertise = false
     @State private var showParentView = false
+    @State private var showPassword = false
+    @State private var showConfirmPassword = false
+    @State private var showTermsSheet = false
+    @State private var showAddChildView = false
     
     var roles = [
         ("parent", "Ebeveyn"),
@@ -24,7 +31,7 @@ struct SignUpView: View {
             VStack(spacing: 20) {
                 // Logo veya Başlık
                 Text("Kayıt Ol")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.custom("Outfit-ExtraBold", size: 28))
                     .padding(.top, 30)
                 
                 VStack(spacing: 20) {
@@ -36,46 +43,100 @@ struct SignUpView: View {
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
                     
-                    // Şifre
-                    CustomTextField(placeholder: "Şifre", text: $password)
-                        .textInputAutocapitalization(.never)
+                    // Telefon Numarası
+                    CustomTextField(placeholder: "Telefon Numarası", text: $phoneNumber)
+                        .keyboardType(.phonePad)
                     
-                    // Rol Seçimi
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Hesap Türü")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.black.opacity(0.6))
+                    // Şifre alanı
+                    ZStack(alignment: .trailing) {
+                        CustomTextField(
+                            placeholder: "Şifre",
+                            text: $password,
+                            isSecure: !showPassword
+                        )
                         
-                        HStack(spacing: 15) {
-                            ForEach(roles, id: \.0) { role in
-                                RoleSelectionButton(
-                                    title: role.1,
-                                    isSelected: selectedRole == role.0,
-                                    action: { selectedRole = role.0 }
-                                )
+                        Button(action: { showPassword.toggle() }) {
+                            Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.trailing, 8)
+                    }
+                    
+                    // Şifre tekrar alanı
+                    ZStack(alignment: .trailing) {
+                        CustomTextField(
+                            placeholder: "Şifre Tekrar",
+                            text: $confirmPassword,
+                            isSecure: !showConfirmPassword
+                        )
+                        
+                        Button(action: { showConfirmPassword.toggle() }) {
+                            Image(systemName: showConfirmPassword ? "eye.slash.fill" : "eye.fill")
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.trailing, 8)
+                    }
+                    
+                    if !password.isEmpty && !confirmPassword.isEmpty && password != confirmPassword {
+                        Text("Şifreler eşleşmiyor")
+                            .font(.custom("Outfit-Regular", size: 12))
+                            .foregroundColor(.red)
+                    }
+                    
+                    // Kullanım şartları
+                    Toggle(isOn: $acceptTerms) {
+                        HStack(spacing: 4) {
+                            Text("Kullanım şartlarını ")
+                                .font(.custom("Outfit-Regular", size: 12))
+                                .foregroundColor(.gray)
+                            
+                            Button(action: {
+                                showTermsSheet = true
+                            }) {
+                                Text("okudum ve kabul ediyorum")
+                                    .font(.custom("Outfit-Medium", size: 12))
+                                    .foregroundColor(Color("BittersweetOrange"))
                             }
                         }
                     }
-                    .padding(.top, 10)
+                    .toggleStyle(CheckboxToggleStyle())
+                    .padding(.horizontal, 4)
                     
-                    CustomButton(title: "Kayit Ol", backgroundColor: Color("BittersweetOrange")) {
+                    // Rol Seçimi - Yeni animasyonlu seçici
+                    AnimatedRoleSelector(selectedRole: $selectedRole)
+                        .padding(.top, 10)
+                    CustomButtonView(title: "Kayit Ol", isLoading: isLoading, disabled: !isFormValid, type: .primary) {
                         signUp()
                     }
-  
                     
+                    Spacer()
                     // Giriş Yap Linki
                     HStack {
                         Text("Zaten hesabınız var mı?")
+                            .font(.custom("Outfit-Regular", size: 16))
                             .foregroundColor(.gray)
                         
                         Button(action: { dismiss() }) {
                             Text("Giriş Yap")
+                                .font(.custom("Outfit-Medium", size: 16))
                                 .foregroundColor(Color("BittersweetOrange"))
                         }
                     }
-                    .font(.system(size: 14))
                 }
-                .padding(.horizontal,20)
+                .padding(.horizontal, 24)
+            }
+            .padding(.vertical, 24)
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.black)
+                        .imageScale(.large)
+                }
             }
         }
         .fullScreenCover(isPresented: $showTeacherExpertise) {
@@ -84,19 +145,29 @@ struct SignUpView: View {
         .fullScreenCover(isPresented: $showParentView) {
             ParentView()
         }
+        .fullScreenCover(isPresented: $showAddChildView) {
+            AddChildView()
+        }
         .alert("Hata", isPresented: $showError) {
             Button("Tamam", role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
+        .sheet(isPresented: $showTermsSheet) {
+            TermsOfServiceView()
+        }
     }
     
     private var isFormValid: Bool {
-        !email.isEmpty && 
-        !password.isEmpty && 
-        !fullName.isEmpty && 
+        !email.isEmpty &&
+        !password.isEmpty &&
+        !confirmPassword.isEmpty &&
+        !fullName.isEmpty &&
+        !phoneNumber.isEmpty &&
         password.count >= 6 &&
-        email.contains("@")
+        email.contains("@") &&
+        password == confirmPassword &&
+        acceptTerms
     }
     
     private func signUp() {
@@ -138,7 +209,8 @@ struct SignUpView: View {
                         if selectedRole == "teacher" {
                             showTeacherExpertise = true
                         } else {
-                            showParentView = true
+                            showParentView = false
+                            showAddChildView = true
                         }
                     }
                 }
@@ -147,22 +219,76 @@ struct SignUpView: View {
     }
 }
 
-// Rol Seçim Butonu
-struct RoleSelectionButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
+// RoleSelectionButton yerine yeni bir AnimatedRoleSelector ekleyelim
+struct AnimatedRoleSelector: View {
+    @Binding var selectedRole: String
+    let roles = [
+        ("parent", "Ebeveyn", "person.fill"),
+        ("teacher", "Öğretmen/Uzman", "person.fill.checkmark")
+    ]
     
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(isSelected ? .white : .black)
-                .frame(maxWidth: .infinity)
-                .frame(height: 40)
-                .background(isSelected ? Color.blue : Color.gray.opacity(0.1))
-                .cornerRadius(8)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Hesap Türü")
+                .font(.custom("Outfit-Medium", size: 14))
+                .foregroundColor(.black.opacity(0.6))
+            
+            ZStack {
+                // Arka plan
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color("FantasyPink"))
+                
+                // Seçili olan için kaydırılan mavi arka plan
+                GeometryReader { geometry in
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color("BittersweetOrange"))
+                        .frame(width: geometry.size.width / 2)
+                        .offset(x: selectedRole == "parent" ? 0 : geometry.size.width / 2)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedRole)
+                }
+                
+                // Butonlar
+                HStack(spacing: 0) {
+                    ForEach(roles, id: \.0) { role in
+                        Button(action: {
+                            withAnimation {
+                                selectedRole = role.0
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: role.2)
+                                    .font(.custom("Outfit-Medium", size: 14))
+                                Text(role.1)
+                                    .font(.custom("Outfit-Medium", size: 14))
+                            }
+                            .foregroundColor(selectedRole == role.0 ? .white : .black)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 45)
+                        }
+                    }
+                }
+            }
+            .frame(height: 45)
         }
+    }
+}
+
+// Checkbox Toggle Style
+struct CheckboxToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button(action: {
+            configuration.isOn.toggle()
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
+                    .foregroundColor(configuration.isOn ? Color("BittersweetOrange") : .gray)
+                    .font(.system(size: 20))
+                    .frame(width: 20, height: 20)
+                
+                configuration.label
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

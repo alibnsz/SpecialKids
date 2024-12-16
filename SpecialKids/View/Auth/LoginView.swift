@@ -12,9 +12,11 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var errorMessage: String?
+    @State private var showPassword = false
     
     @ObservedObject var firebaseManager = FirebaseManager.shared
     @State private var isLoading = false
+    @Environment(\.dismiss) private var dismiss
 
     private func isValidEmail(_ email: String) -> Bool {
         let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
@@ -26,69 +28,65 @@ struct LoginView: View {
         NavigationStack {
             VStack(spacing: 20) {
                 Spacer()
-                // Lock Icon
-
-                    Image("logo-transparent")
+                
+                Image("logo-transparent")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .padding(.horizontal, 32)
                 
                 Text("Hosgeldiniz")
-                    .font(.custom(outfitLight, size: 34))
+                    .font(.custom("Outfit-ExtraBold", size: 34))
                     .frame(maxWidth: .infinity, alignment: .center)
+                
                 Text("Giris Yaparak hesabiniza ulasin ve kaldiginiz yerden devam edin.")
-                    .font(.custom(outfitThin, size: 14))
+                    .font(.custom("Outfit-Light", size: 14))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity, alignment: .center)
-
+                    .padding(.bottom, 10)
                 
-                    CustomTextField(placeholder: "Email", text: $email)
-                    CustomTextField(placeholder: "Password", text: $password)
-                
+                CustomTextField(placeholder: "Email", text: $email)
+                ZStack(alignment: .trailing) {
+                    CustomTextField(
+                        placeholder: "Şifre",
+                        text: $password,
+                        isSecure: !showPassword
+                    )
+                    
+                    Button(action: { showPassword.toggle() }) {
+                        Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.trailing, 8)
+                }
                 
                 Button("Parolani mi unuttun?") {
                 }
                 .foregroundColor(Color.gray)
-                .font(.custom(outfitMedium, size: 14))
+                .font(.custom("Outfit-Medium", size: 14))
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 
-                CustomButton(title: isLoading ? "Loading..." : "Giris Yap", backgroundColor: Color("BittersweetOrange")) {
-                    if email.isEmpty || password.isEmpty {
-                        errorMessage = "Lütfen tüm alanları doldurun."
-                        return
-                    }
+                
+                CustomButtonView(
+                    title: "Giriş Yap",
+                    isLoading: isLoading,
                     
-                    if !isValidEmail(email) {
-                        errorMessage = "Geçersiz e-posta adresi."
-                        return
-                    }
-                    
-                    isLoading = true
-                    firebaseManager.signIn(email: email, password: password) { error in
-                        if let error = error {
-                            errorMessage = error.localizedDescription
-                        } else {
-                            if firebaseManager.currentUserRole == "teacher" {
-                                // Öğretmen ekranına yönlendirme
-                            } else if firebaseManager.currentUserRole == "parent" {
-                                // Veli ekranına yönlendirme
-                            }
-                        }
-                        isLoading = false
-                    }
+                    disabled: email.isEmpty || password.isEmpty || !isValidEmail(email),
+                    type: .primary
+                ) {
+                    signIn()
                 }
-                .disabled(isLoading)
                 
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
-                        .font(.system(size: 14))
+                        .font(.custom("Outfit-Regular", size: 14))
                         .padding(.top, 5)
                 }
                 
                 HStack {
                     VStack { Divider().background(Color.gray.opacity(0.5)) }
                     Text("veya")
-                        .font(.system(size: 14))
+                        .font(.custom("Outfit-Regular", size: 14))
                         .foregroundColor(.gray)
                     VStack { Divider().background(Color.gray.opacity(0.5)) }
                 }
@@ -96,24 +94,45 @@ struct LoginView: View {
                 
                 HStack(spacing: 20) {
                     SocialLoginButton(image: Image("google"))
-                    SocialLoginButton(image: Image(systemName: "apple.logo")).foregroundStyle(.black)
+                    SocialLoginButton(image: Image(systemName: "apple.logo"))
+                        .foregroundStyle(.black)
                 }
                 Spacer()
                 
                 HStack {
                     Text("Henuz bir hesabin yok mu?")
-                    
+                        .font(.custom("Outfit-Regular", size: 16))
                         .foregroundColor(.gray)
-                    NavigationLink(destination: SignUpView()) {
+                    
+                    NavigationLink(destination: SignUpView()
+                        .navigationBarBackButtonHidden(true)
+                    ) {
                         Text("Kayit Ol")
+                            .font(.custom("Outfit-Medium", size: 16))
                             .foregroundColor(Color("BittersweetOrange"))
                     }
                 }
-                .font(.custom(outfitMedium, size: 16))
             }
-            .padding(24)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 24)
             .background(Color(UIColor.white))
             .edgesIgnoringSafeArea(.all)
+        }
+    }
+    
+    private func signIn() {
+        isLoading = true
+        firebaseManager.signIn(email: email, password: password) { error in
+            if let error = error {
+                errorMessage = error.localizedDescription
+            } else {
+                if firebaseManager.currentUserRole == "teacher" {
+                    // Öğretmen ekranına yönlendirme
+                } else if firebaseManager.currentUserRole == "parent" {
+                    // Veli ekranına yönlendirme
+                }
+            }
+            isLoading = false
         }
     }
 }
