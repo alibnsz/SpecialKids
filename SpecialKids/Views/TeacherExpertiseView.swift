@@ -42,7 +42,7 @@ struct TeacherExpertiseView: View {
                 // Sertifikalar Bölümü
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Sertifikalar")
+                        Text("Sertifikalar(Zorunlu Degil) ")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.black.opacity(0.6))
                         Spacer()
@@ -56,7 +56,6 @@ struct TeacherExpertiseView: View {
                             )
                         }
                     }
-                    
                     
                     Button(action: {
                         certificates.append("")
@@ -75,8 +74,9 @@ struct TeacherExpertiseView: View {
                 CustomButton(title: "Kaydet ve Devam Et", backgroundColor: Color("BittersweetOrange")) {
                     saveTeacherInfo()
                 }
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
+            .padding()
         }
         .navigationBarBackButtonHidden(true)
         .fullScreenCover(isPresented: $showTeacherHome) {
@@ -99,6 +99,12 @@ struct TeacherExpertiseView: View {
     }
     
     private func saveTeacherInfo() {
+        guard isFormValid else {
+            errorMessage = "Lütfen tüm alanları doğru şekilde doldurun"
+            showError = true
+            return
+        }
+        
         isLoading = true
         
         guard let graduationYearInt = Int(graduationYear),
@@ -133,5 +139,9 @@ struct TeacherExpertiseView: View {
             }
         }
     }
+}
+
+#Preview {
+    TeacherExpertiseView(userId: "preview")
 } 
 

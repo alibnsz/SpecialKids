@@ -35,18 +35,26 @@ class FirebaseManager: ObservableObject {
     // MARK: - Çocukları Al
     func fetchChildren(for parentId: String, completion: @escaping ([Student]?, Error?) -> Void) {
         db.collection("parents").document(parentId).collection("children")
-            .getDocuments { snapshot, error in
+            .getDocuments { [self] snapshot, error in
                 if let error = error {
                     print("Çocuklar çekilemedi: \(error.localizedDescription)")
                     completion(nil, error)
                 } else {
-                    let children = snapshot?.documents.compactMap { doc -> Student? in
-                        let data = doc.data()
-                        print("Çocuk verisi: \(data)") // Çocuk verilerini yazdır
-                        guard let id = data["id"] as? String,
-                              let name = data["name"] as? String,
-                              let age = data["age"] as? Int else { return nil } // Yaş bilgisini ekledik
-                        return Student(id: id, name: name, age: age)
+                    let children = snapshot?.documents.compactMap { document -> Student? in
+                        let data = document.data()
+                        let childId = document.documentID
+                        let name = data["name"] as? String ?? ""
+                        let age = data["age"] as? Int ?? 0
+                        let studentId = data["studentId"] as? String ?? generateRandomChildId()
+                        let birthDate = (data["birthDate"] as? Timestamp)?.dateValue()
+                        
+                        return Student(
+                            id: childId,
+                            name: name,
+                            age: age,
+                            studentId: studentId,
+                            birthDate: birthDate
+                        )
                     }
                     completion(children, nil)
                 }
@@ -69,29 +77,30 @@ class FirebaseManager: ObservableObject {
             }
         }
     }
-    // MARK: - Çocuk Ekleme (Parents kısmına da eklenmesi gerek)
+    // MARK: - Çocuk Ekleme
     func addChildToParent(userId: String, childId: String, childName: String, age: Int, completion: @escaping (Error?) -> Void) {
-        let child = Student(id: childId, name: childName, age: age)
-        let childRef = db.collection("parents").document(userId).collection("children").document(childId)
+        let studentId = generateRandomChildId()
+        print("Yeni oluşturulan 6 haneli ID: \(studentId)")
         
-        // Çocuğu veritabanına ekliyoruz
-        do {
-            try childRef.setData(from: child) { error in
-                if let error = error {
-                    completion(error)
-                } else {
-                    // Çocuk eklendikten sonra "students" koleksiyonuna da ekliyoruz
-                    self.db.collection("students").document(childId).setData([
-                        "id": childId,
-                        "name": childName,
-                        "age": age // Age burada da ekleniyor
-                    ]) { error in
-                        completion(error)
-                    }
-                }
+        let childData: [String: Any] = [
+            "id": childId,
+            "name": childName,
+            "age": age,
+            "studentId": studentId,
+            "parentId": userId,
+            "createdAt": Timestamp()
+        ]
+        
+        // Ana children koleksiyonuna ekle
+        db.collection("children").document(childId).setData(childData) { [weak self] error in
+            if let error = error {
+                print("Children koleksiyonuna ekleme hatası: \(error)")
+                completion(error)
+                return
             }
-        } catch {
-            completion(error)
+            
+            print("Çocuk başarıyla eklendi - StudentID: \(studentId)")
+            completion(nil)
         }
     }
     // MARK: - Sınıf Yükleme
@@ -110,49 +119,47 @@ class FirebaseManager: ObservableObject {
     // MARK: - Ödev İşlemleri
     func assignHomework(homework: Homework, completion: @escaping (Error?) -> Void) {
         let homeworkData: [String: Any] = [
+            "id": homework.id,
             "title": homework.title,
             "description": homework.description,
-            "dueDate": Timestamp(date: homework.dueDate) // Ödevin teslim tarihi
+            "dueDate": Timestamp(date: homework.dueDate),
+            "studentId": homework.studentId,
+            "teacherId": homework.teacherId ?? auth.currentUser?.uid ?? "",
+            "status": homework.status.rawValue,
+            "assignedDate": Timestamp(date: homework.assignedDate)
         ]
         
-        // Öğrenciye ait "homeworks" koleksiyonuna ödev kaydediyoruz
-        let homeworkRef = db.collection("students").document(homework.studentId).collection("homeworks")
-        
-        homeworkRef.addDocument(data: homeworkData) { error in
+        db.collection("homework").document(homework.id).setData(homeworkData) { error in
             completion(error)
         }
     }
-    func fetchAssignmentsForStudent(studentId: String, completion: @escaping ([Assignment]?, Error?) -> Void) {
-        let db = Firestore.firestore() // Firestore bağlantısı
-
-        db.collection("students").document(studentId).collection("homeworks")
+    func fetchHomeworkForStudent(studentId: String, completion: @escaping ([Homework]?, Error?) -> Void) {
+        db.collection("homework")
+            .whereField("studentId", isEqualTo: studentId)
             .getDocuments { snapshot, error in
                 if let error = error {
-                    print("Firebase'den ödev çekme hatası: \(error.localizedDescription)")
                     completion(nil, error)
                     return
                 }
-
-                // Gelen verileri Assignment modeline dönüştürüyoruz
-                let assignments = snapshot?.documents.compactMap { document -> Assignment? in
+                
+                let homeworks = snapshot?.documents.compactMap { document -> Homework? in
                     let data = document.data()
-                    guard let title = data["title"] as? String,
-                          let description = data["description"] as? String,
-                          let dueDateTimestamp = data["dueDate"] as? Timestamp else {
-                              return nil
-                          }
-                    return Assignment(
+                    return Homework(
                         id: document.documentID,
-                        title: title,
-                        description: description,
-                        dueDate: dueDateTimestamp.dateValue(),
-                        studentId: studentId // Eksik olan studentId burada eklendi
+                        title: data["title"] as? String ?? "",
+                        description: data["description"] as? String ?? "",
+                        dueDate: (data["dueDate"] as? Timestamp)?.dateValue() ?? Date(),
+                        studentId: data["studentId"] as? String ?? "",
+                        teacherId: data["teacherId"] as? String,
+                        status: HomeworkStatus(rawValue: data["status"] as? String ?? "") ?? .pending,
+                        assignedDate: (data["assignedDate"] as? Timestamp)?.dateValue() ?? Date()
                     )
                 }
-
-                print("Firebase'den çekilen ödevler: \(assignments ?? [])")
-                completion(assignments, nil)
+                completion(homeworks, nil)
             }
+    }
+    func fetchAssignmentsForStudent(studentId: String, completion: @escaping ([Assignment]?, Error?) -> Void) {
+        fetchHomeworkForStudent(studentId: studentId, completion: completion)
     }
     func fetchHomeworks(for parentId: String, completion: @escaping ([Homework]?, Error?) -> Void) {
         // Önce ebeveynin çocuklarını çek
@@ -186,19 +193,59 @@ class FirebaseManager: ObservableObject {
     }
     // MARK: - Öğrenci Ekleme
     func addStudentToClass(classId: String, studentId: String, completion: @escaping (Error?) -> Void) {
-        let classRef = db.collection("classes").document(classId)
+        print("Sınıfa eklenecek öğrenci ID'si: \(studentId)")
         
-        // Öğrenci eklenmeden önce mevcut öğrencileri alıp, sonra yeni öğrenci ekliyoruz
-        classRef.updateData([
-            "students": FieldValue.arrayUnion([studentId])
-        ]) { error in
-            if error == nil {
-                // Sınıfın güncel listesini alıyoruz
-                self.fetchClasses { _ in
-                    completion(nil)
-                }
-            } else {
+        // Önce öğrenciyi bul
+        checkStudentId(studentId: studentId) { student, error in
+            if let error = error {
+                print("Öğrenci arama hatası: \(error.localizedDescription)")
                 completion(error)
+                return
+            }
+            
+            guard let student = student else {
+                print("Öğrenci bulunamadı")
+                completion(NSError(domain: "", code: 404, userInfo: [NSLocalizedDescriptionKey: "Öğrenci bulunamadı"]))
+                return
+            }
+            
+            print("Bulunan öğrenci: \(student)")
+            
+            // Sınıfa öğrenciyi ekle (document ID'yi kullanarak)
+            let classRef = self.db.collection("classes").document(classId)
+            classRef.getDocument { document, error in
+                if let error = error {
+                    print("Sınıf getirme hatası: \(error.localizedDescription)")
+                    completion(error)
+                    return
+                }
+                
+                guard let document = document, document.exists else {
+                    print("Sınıf bulunamadı")
+                    completion(NSError(domain: "", code: 404, userInfo: [NSLocalizedDescriptionKey: "Sınıf bulunamadı"]))
+                    return
+                }
+                
+                // Mevcut öğrenci listesini al ve güncelle
+                var currentStudents = document.data()?["students"] as? [String] ?? []
+                if !currentStudents.contains(student.id) {
+                    currentStudents.append(student.id)
+                    
+                    classRef.updateData([
+                        "students": currentStudents
+                    ]) { error in
+                        if let error = error {
+                            print("Öğrenci ekleme hatası: \(error.localizedDescription)")
+                            completion(error)
+                        } else {
+                            print("Öğrenci başarıyla eklendi")
+                            completion(nil)
+                        }
+                    }
+                } else {
+                    print("Öğrenci zaten sınıfta")
+                    completion(NSError(domain: "", code: 409, userInfo: [NSLocalizedDescriptionKey: "Öğrenci zaten bu sınıfta"]))
+                }
             }
         }
     }
@@ -241,30 +288,70 @@ class FirebaseManager: ObservableObject {
         addClass(newClass, completion: completion)
     }
     func fetchStudentsForClass(classId: String, completion: @escaping ([Student]?, Error?) -> Void) {
-        db.collection("classes").document(classId).getDocument { document, error in
+        print("Sınıf için öğrenciler getiriliyor: \(classId)")
+        
+        // Önce sınıfı al
+        db.collection("classes").document(classId).getDocument { [weak self] document, error in
             if let error = error {
+                print("Sınıf getirme hatası: \(error.localizedDescription)")
                 completion(nil, error)
                 return
             }
-            guard let data = document?.data(),
-                  let studentIds = data["students"] as? [String] else {
-                completion(nil, nil)
+            
+            guard let document = document,
+                  let classData = document.data(),
+                  let studentIds = classData["students"] as? [String] else {
+                print("Sınıf verisi bulunamadı veya öğrenci listesi yok")
+                completion([], nil)
                 return
             }
-
+            
+            print("Bulunan öğrenci ID'leri: \(studentIds)")
+            
+            if studentIds.isEmpty {
+                completion([], nil)
+                return
+            }
+            
+            // Her bir öğrenci ID'si için children koleksiyonundan bilgileri al
+            let dispatchGroup = DispatchGroup()
             var students: [Student] = []
-            let group = DispatchGroup()
+            var fetchError: Error?
+            
             for studentId in studentIds {
-                group.enter()
-                self.db.collection("students").document(studentId).getDocument { studentDoc, error in
-                    if let studentDoc = studentDoc, let student = try? studentDoc.data(as: Student.self) {
-                        students.append(student)
+                dispatchGroup.enter()
+                
+                self?.db.collection("children").document(studentId).getDocument { document, error in
+                    defer { dispatchGroup.leave() }
+                    
+                    if let error = error {
+                        print("Öğrenci getirme hatası: \(error.localizedDescription)")
+                        fetchError = error
+                        return
                     }
-                    group.leave()
+                    
+                    if let document = document,
+                       let data = document.data() {
+                        let student = Student(
+                            id: document.documentID,
+                            name: data["name"] as? String ?? "",
+                            age: data["age"] as? Int ?? 0,
+                            studentId: data["studentId"] as? String ?? "",
+                            birthDate: (data["birthDate"] as? Timestamp)?.dateValue()
+                        )
+                        students.append(student)
+                        print("Öğrenci bulundu: \(student.name)")
+                    }
                 }
             }
-            group.notify(queue: .main) {
-                completion(students, nil)
+            
+            dispatchGroup.notify(queue: .main) {
+                if let error = fetchError {
+                    completion(nil, error)
+                } else {
+                    print("Toplam \(students.count) öğrenci bulundu")
+                    completion(students, nil)
+                }
             }
         }
     }
@@ -311,7 +398,12 @@ class FirebaseManager: ObservableObject {
     // MARK: - Öğrenci Ekleme
     func addStudent(name: String, age: Int, completion: @escaping (Error?) -> Void) {
         let studentId = generateRandomChildId() // Otomatik 6 haneli ID oluşturuluyor
-        let student = Student(id: studentId, name: name, age: age) // Yaş bilgisini de ekliyoruz
+        let student = Student(
+            id: studentId,
+            name: name,
+            age: age,
+            studentId: studentId // studentId parametresini ekledik
+        )
 
         // Öğrenciyi "students" koleksiyonuna kaydediyoruz
         do {
@@ -398,6 +490,81 @@ class FirebaseManager: ObservableObject {
             }
         } catch {
             print("Çıkış yapılamadı: \(error.localizedDescription)")
+        }
+    }
+    // MARK: - Homework Functions
+    func updateHomeworkStatus(homeworkId: String, status: HomeworkStatus, completion: @escaping (Error?) -> Void) {
+        db.collection("homework").document(homeworkId).updateData([
+            "status": status.rawValue
+        ]) { error in
+            completion(error)
+        }
+    }
+    // MARK: - Öğrenci Arama
+    func checkStudentId(studentId: String, completion: @escaping (Student?, Error?) -> Void) {
+        print("Aranan ID: \(studentId)")
+        
+        // Hem studentId hem de id alanlarında arama yap
+        db.collection("children")
+            .whereField("studentId", isEqualTo: studentId)
+            .getDocuments { [weak self] snapshot, error in
+                if let error = error {
+                    print("Arama hatası: \(error.localizedDescription)")
+                    completion(nil, error)
+                    return
+                }
+                
+                if let document = snapshot?.documents.first {
+                    let data = document.data()
+                    print("Bulunan öğrenci verisi: \(data)")
+                    
+                    let student = Student(
+                        id: document.documentID,
+                        name: data["name"] as? String ?? "",
+                        age: data["age"] as? Int ?? 0,
+                        studentId: data["studentId"] as? String ?? "",
+                        birthDate: (data["birthDate"] as? Timestamp)?.dateValue()
+                    )
+                    print("Oluşturulan student objesi: \(student)")
+                    completion(student, nil)
+                } else {
+                    // studentId bulunamadıysa, id alanında ara
+                    self?.db.collection("children")
+                        .whereField("id", isEqualTo: studentId)
+                        .getDocuments { snapshot, error in
+                            if let document = snapshot?.documents.first {
+                                let data = document.data()
+                                let student = Student(
+                                    id: document.documentID,
+                                    name: data["name"] as? String ?? "",
+                                    age: data["age"] as? Int ?? 0,
+                                    studentId: data["studentId"] as? String ?? "",
+                                    birthDate: (data["birthDate"] as? Timestamp)?.dateValue()
+                                )
+                                completion(student, nil)
+                            } else {
+                                print("Öğrenci bulunamadı - Aranan ID: \(studentId)")
+                                completion(nil, NSError(domain: "", code: 404, userInfo: [NSLocalizedDescriptionKey: "Öğrenci bulunamadı"]))
+                            }
+                        }
+                }
+            }
+    }
+    // MARK: - Öğretmen İşlemleri
+    func fetchTeacherName(completion: @escaping (String) -> Void) {
+        guard let teacherId = auth.currentUser?.uid else {
+            completion("Öğretmen")
+            return
+        }
+        
+        db.collection("teachers").document(teacherId).getDocument { document, error in
+            if let document = document,
+               let data = document.data(),
+               let name = data["name"] as? String {
+                completion(name)
+            } else {
+                completion("Öğretmen")
+            }
         }
     }
 }
