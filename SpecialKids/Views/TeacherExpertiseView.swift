@@ -144,4 +144,3 @@ struct TeacherExpertiseView: View {
 #Preview {
     TeacherExpertiseView(userId: "preview")
 } 
-
