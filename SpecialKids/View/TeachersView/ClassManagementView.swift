@@ -46,7 +46,7 @@ struct ClassManagementView: View {
                             .lineLimit(1)
                         Spacer()
                         Image(systemName: "chevron.down")
-                            .foregroundColor(Color("black"))
+                            .foregroundColor(Color("OilBlack"))
                     }
                     .padding(.horizontal, 16)
                     .frame(maxWidth: .infinity)
@@ -57,7 +57,7 @@ struct ClassManagementView: View {
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color("black"), lineWidth: 1)
+                            .stroke(Color("OilBlack"), lineWidth: 1)
                     )
                 }
                 .disabled(isLoading)

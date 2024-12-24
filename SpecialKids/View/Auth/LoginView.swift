@@ -123,16 +123,23 @@ struct LoginView: View {
     private func signIn() {
         isLoading = true
         firebaseManager.signIn(email: email, password: password) { error in
-            if let error = error {
-                errorMessage = error.localizedDescription
-            } else {
-                if firebaseManager.currentUserRole == "teacher" {
-                    // Öğretmen ekranına yönlendirme
-                } else if firebaseManager.currentUserRole == "parent" {
-                    // Veli ekranına yönlendirme
+            DispatchQueue.main.async {
+                if let error = error {
+                    errorMessage = error.localizedDescription
+                } else {
+                    if firebaseManager.currentUserRole == "teacher" {
+                        withAnimation {
+                            let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene
+                            let window = scene?.windows.first
+                            window?.rootViewController = UIHostingController(
+                                rootView: TeacherTabView()
+                                    .environmentObject(firebaseManager)
+                            )
+                        }
+                    }
                 }
+                isLoading = false
             }
-            isLoading = false
         }
     }
 }

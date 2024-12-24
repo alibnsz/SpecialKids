@@ -80,7 +80,8 @@ struct TeacherExpertiseView: View {
         }
         .navigationBarBackButtonHidden(true)
         .fullScreenCover(isPresented: $showTeacherHome) {
-            ClassView()
+            TeacherTabView()
+                .environmentObject(FirebaseManager.shared)
         }
         .alert("Hata", isPresented: $showError) {
             Button("Tamam", role: .cancel) {}
