@@ -40,7 +40,9 @@ struct ClassView: View {
                             } onNotificationsButtonTapped: {
                                 
                             }
-                            .padding(.top, UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0)
+                            .padding(.top, UIApplication.shared.connectedScenes.first.flatMap { scene in
+                                (scene as? UIWindowScene)?.windows.first?.safeAreaInsets.top
+                            } ?? 0)
                             
                             // Üst Başlık
                             VStack(alignment: .leading, spacing: 4) {
@@ -135,6 +137,11 @@ struct ClassView: View {
             }
             .onAppear {
                 fetchInitialData()
+            }
+            .onChange(of: selectedClass) { oldValue, newValue in
+                if let newClass = newValue {
+                    fetchStudentsForClass(classId: newClass.id)
+                }
             }
         }
         .navigationViewStyle(.stack)

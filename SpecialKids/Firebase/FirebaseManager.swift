@@ -35,7 +35,7 @@ class FirebaseManager: ObservableObject {
     // MARK: - Çocukları Al
     func fetchChildren(for parentId: String, completion: @escaping ([Student]?, Error?) -> Void) {
         db.collection("parents").document(parentId).collection("children")
-            .getDocuments { [self] snapshot, error in
+            .getDocuments { snapshot, error in
                 if let error = error {
                     print("Çocuklar çekilemedi: \(error.localizedDescription)")
                     completion(nil, error)
@@ -45,7 +45,7 @@ class FirebaseManager: ObservableObject {
                         let childId = document.documentID
                         let name = data["name"] as? String ?? ""
                         let age = data["age"] as? Int ?? 0
-                        let studentId = data["studentId"] as? String ?? generateRandomChildId()
+                        let studentId = data["studentId"] as? String ?? self.generateRandomChildId()
                         let birthDate = (data["birthDate"] as? Timestamp)?.dateValue()
                         
                         return Student(
@@ -516,7 +516,7 @@ class FirebaseManager: ObservableObject {
                 
                 if let document = snapshot?.documents.first {
                     let data = document.data()
-                    print("Bulunan öğrenci verisi: \(data)")
+                    print("Bulunan ��ğrenci verisi: \(data)")
                     
                     let student = Student(
                         id: document.documentID,

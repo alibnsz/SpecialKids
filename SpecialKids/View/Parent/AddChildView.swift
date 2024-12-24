@@ -86,8 +86,8 @@ struct AddChildView: View {
                 Text("Çocuk başarıyla eklendi.")
             }
         }
-        .onChange(of: viewModel.navigateToParentView) { shouldNavigate in
-            if shouldNavigate {
+        .onChange(of: viewModel.navigateToParentView) { oldValue, newValue in
+            if newValue {
                 dismiss()
             }
         }
