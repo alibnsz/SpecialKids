@@ -516,7 +516,7 @@ class FirebaseManager: ObservableObject {
                 
                 if let document = snapshot?.documents.first {
                     let data = document.data()
-                    print("Bulunan ��ğrenci verisi: \(data)")
+                    print("Bulunan öğrenci verisi: \(data)")
                     
                     let student = Student(
                         id: document.documentID,
