@@ -70,11 +70,10 @@ struct TeacherExpertiseView: View {
                     .padding(.top, 4)
                 }
                 .padding(.top, 8)
-                
-                CustomButton(title: "Kaydet ve Devam Et", backgroundColor: Color("BittersweetOrange")) {
+                CustomButtonView(title: "Kaydet ve Devam Et", type: .primary) {
                     saveTeacherInfo()
+
                 }
-                .padding(.horizontal)
             }
             .padding()
         }

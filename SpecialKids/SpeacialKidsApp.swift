@@ -7,8 +7,11 @@
 import SwiftUI
 import FirebaseCore
 import FirebaseAppCheck
+
 @main
 struct SpecialKids: App {
+    @StateObject var firebaseManager = FirebaseManager.shared
+    
     init() {
         FirebaseApp.configure()
 
@@ -20,7 +23,8 @@ struct SpecialKids: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SplashScreen()
+                .environmentObject(firebaseManager)
         }
     }
 }
