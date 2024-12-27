@@ -38,16 +38,17 @@ struct ParentTabView: View {
                     Label("Ana", systemImage: "house")
                 }
             
-            ParentView()
+            PINVerificationView()
                 .tabItem {
-                    Label("Eğitim", systemImage: "book")
+                    Label("Oyunlar", systemImage: "gamecontroller")
                 }
             
-            Text("Eğitim İçeriği")
+            Text("Profil")
                 .tabItem {
-                    Label("Eğitim", systemImage: "person")
+                    Label("Profil", systemImage: "person")
                 }
         }
+        .accentColor(Color("BittersweetOrange"))
     }
 }
 
