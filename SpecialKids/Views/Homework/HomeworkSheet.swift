@@ -105,24 +105,47 @@ struct HomeworkSheet: View {
     private func sendHomework() {
         isLoading = true
         
-        let homework = Homework(
-            title: homeworkTitle,
-            description: homeworkDescription,
-            dueDate: dueDate,
-            studentId: student.id,
-            status: .pending
-        )
-        
-        FirebaseManager.shared.assignHomework(homework: homework) { error in
-            isLoading = false
-            
-            if let error = error {
-                alertMessage = "Ödev gönderilirken hata oluştu: \(error.localizedDescription)"
-            } else {
-                alertMessage = "Ödev başarıyla gönderildi!"
-                showSuccessAnimation = true
+        // Önce öğrencinin velisini bul
+        FirebaseManager.shared.fetchParentForStudent(studentId: student.studentId) { parentId in
+            guard let parentId = parentId else {
+                self.isLoading = false
+                self.alertMessage = "Öğrencinin velisi bulunamadı"
+                self.showAlert = true
+                return
             }
-            showAlert = true
+            
+            print("Found parent ID: \(parentId) for student: \(student.studentId)") // Debug log
+            
+            let homework = Homework(
+                id: UUID().uuidString,
+                title: self.homeworkTitle,
+                description: self.homeworkDescription,
+                dueDate: self.dueDate,
+                studentId: self.student.id,
+                teacherId: FirebaseManager.shared.auth.currentUser?.uid,
+                status: .pending,
+                assignedDate: Date()
+            )
+            
+            // Ödevi kaydet ve bildirim oluştur
+            FirebaseManager.shared.assignHomework(homework: homework) { error in
+                self.isLoading = false
+                
+                if let error = error {
+                    self.alertMessage = "Ödev gönderilirken hata oluştu: \(error.localizedDescription)"
+                } else {
+                    // Ödev başarıyla gönderildi, bildirim oluştur
+                    Task {
+                        await FirebaseManager.shared.sendHomeworkNotification(
+                            homework: homework,
+                            parentId: parentId // Velinin ID'sini kullan
+                        )
+                    }
+                    self.alertMessage = "Ödev başarıyla gönderildi!"
+                    self.showSuccessAnimation = true
+                }
+                self.showAlert = true
+            }
         }
     }
 }
