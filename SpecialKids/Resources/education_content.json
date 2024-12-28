@@ -1,0 +1,52 @@
+{
+    "categories": [
+        {
+            "id": "adhd",
+            "title": "DEHB (Dikkat Eksikliği ve Hiperaktivite)",
+            "image": "adhd",
+            "color": "#FF6B6B",
+            "articles": [
+                {
+                    "id": "adhd_what",
+                    "title": "DEHB Nedir?",
+                    "image": "adhd",
+                    "content": "Dikkat Eksikliği ve Hiperaktivite Bozukluğu (DEHB), çocukluk çağında sık görülen nörogelişimsel bir bozukluktur. Dikkat eksikliği, aşırı hareketlilik ve dürtüsellik gibi belirtilerle kendini gösterir.\n\nDEHB olan çocuklar genellikle:\n• Dikkatlerini toplamakta ve sürdürmekte zorlanırlar\n• Organize olmakta güçlük çekerler\n• Unutkandırlar ve eşyalarını sık sık kaybederler\n• Yerinde durmakta zorlanırlar\n• Sırasını beklemekte güçlük çekerler",
+                    "tips": [
+                        "Günlük rutinler oluşturun",
+                        "Görev listelerini görsel hale getirin",
+                        "Kısa ve net yönergeler kullanın",
+                        "Başarılarını takdir edin",
+                        "Düzenli fiziksel aktivite sağlayın"
+                    ]
+                },
+                {
+                    "id": "adhd_strategies",
+                    "title": "Eğitim Stratejileri",
+                    "image": "adhd",
+                    "content": "DEHB'li çocukların eğitiminde özel stratejiler kullanmak önemlidir. Bu stratejiler çocuğun akademik başarısını artırırken, sosyal becerilerinin de gelişmesine yardımcı olur.\n\nEtkili Eğitim Yaklaşımları:\n• Çoklu duyu kullanımı\n• Kısa öğrenme periyotları\n• Görsel destekler\n• Hareket temelli öğrenme\n• Teknoloji destekli eğitim"
+                }
+            ]
+        },
+        {
+            "id": "autism",
+            "title": "Otizm Spektrum Bozukluğu",
+            "image": "adhd",
+            "color": "#4ECDC4",
+            "articles": [
+                {
+                    "id": "autism_basics",
+                    "title": "Otizm Hakkında Temel Bilgiler",
+                    "image": "adhd",
+                    "content": "Otizm Spektrum Bozukluğu (OSB), sosyal iletişim ve etkileşimde zorluklar, tekrarlayıcı davranışlar ve sınırlı ilgi alanları ile karakterize olan nörogelişimsel bir durumdur.\n\nOtizmli çocukların özellikleri:\n• Göz teması kurmakta zorlanabilirler\n• Sosyal etkileşimde güçlük yaşayabilirler\n• Rutinlere bağlı kalma eğilimindedirler\n• Duyusal hassasiyetleri olabilir",
+                    "tips": [
+                        "Görsel destekler kullanın",
+                        "Rutinler oluşturun",
+                        "Duyusal ihtiyaçları gözetin",
+                        "Açık ve net iletişim kurun",
+                        "Sosyal becerileri destekleyin"
+                    ]
+                }
+            ]
+        }
+    ]
+} 
