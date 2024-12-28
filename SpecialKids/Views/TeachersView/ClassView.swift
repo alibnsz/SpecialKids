@@ -10,141 +10,170 @@ struct ClassView: View {
     @State private var selectedStudent: Student?
     @State private var showHomeworkSheet = false
     @State private var isLoading = true
+    @State private var showNotifications = false
+    @State private var notifications: [Notification] = []
+    
+    private let horizontalPadding: CGFloat = 20
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                if isLoading {
-                    ProgressView("Yükleniyor...")
-                } else if selectedClass == nil {
-                    VStack(spacing: 16) {
-                        Text("Lütfen bir sınıf seçin")
-                            .font(.custom("Outfit-Regular", size: 16))
-                            .foregroundColor(Color("OilBlack"))
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Üst başlık - Hoşgeldin mesajı
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Hoşgeldin,")
+                                .font(.custom("Outfit-Regular", size: 16))
+                                .foregroundColor(.secondary)
+                            Text(teacherName)
+                                .font(.custom("Outfit-SemiBold", size: 28))
+                                .foregroundColor(Color("NeutralBlack"))
+                        }
                         
-                        Button(action: { showClassManagement = true }) {
-                            Text("Sınıf Seç")
-                                .font(.custom("Outfit-Medium", size: 16))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 12)
-                                .background(Color("BittersweetOrange"))
-                                .cornerRadius(25)
+                        Spacer()
+                        
+                        // Bildirim ve sınıf yönetimi ikonları
+                        HStack(spacing: 12) {
+                            Button(action: { showClassManagement = true }) {
+                                Image(systemName: "rectangle.stack.fill")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(Color("BittersweetOrange"))
+                                    .frame(width: 40, height: 40)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(.white)
+                                            .shadow(color: Color.black.opacity(0.05), radius: 15)
+                                    )
+                            }
+                            
+                            NavigationLink {
+                                NotificationsView(notifications: notifications)
+                                    .navigationBarTitleDisplayMode(.inline)
+                            } label: {
+                                NotificationButtonView(count: notifications.count)
+                            }
                         }
                     }
-                } else {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            HeaderView(profileImage: Image("man"), name: "Hoşgeldin, \(teacherName)") {
-                                
-                            } onNotificationsButtonTapped: {
-                                
-                            }
-                            .padding(.top, UIApplication.shared.connectedScenes.first.flatMap { scene in
-                                (scene as? UIWindowScene)?.windows.first?.safeAreaInsets.top
-                            } ?? 0)
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.top, 16)
+                    
+                    if selectedClass == nil {
+                        // Sınıf seçilmediğinde gösterilecek view
+                        VStack(spacing: 24) {
+                            // İllüstrasyon
+                            Image(systemName: "rectangle.stack.person.crop.fill")
+                                .font(.system(size: 80))
+                                .foregroundColor(Color("BittersweetOrange"))
+                                .padding(.bottom, 16)
                             
-                            // Üst Başlık
-                            VStack(alignment: .leading, spacing: 4) {
+                            // Başlık ve açıklama
+                            VStack(spacing: 8) {
+                                Text("Henüz Bir Sınıfınız Yok")
+                                    .font(.custom("Outfit-SemiBold", size: 24))
+                                    .foregroundColor(Color("NeutralBlack"))
                                 
-                                HStack {
-                                    Button(action: { showAddStudentSheet = true }) {
-                                        HStack(spacing: 8) {
-                                            Image(systemName: "plus.circle.fill")
-                                                .foregroundColor(Color("OilBlack"))
-                                            Text("Daha fazla öğrenci ekle")
-                                                .font(.custom("Outfit-Regular", size: 16))
-                                                .foregroundColor(Color("OilBlack"))
-                                        }
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    Button(action: { showClassManagement = true }) {
-                                        Text("Sınıflarım")
+                                Text("Öğrencilerinizi yönetmek için bir sınıf oluşturun veya seçin")
+                                    .font(.custom("Outfit-Regular", size: 16))
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 32)
+                            }
+                            
+                            // Sınıf oluşturma butonu
+                            CustomButtonView(
+                                title: "Sınıf Seç",
+                                type: .primary
+                            ) {
+                                showClassManagement = true
+                            }
+                            .frame(maxWidth: 200)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.vertical, 40)
+                        .background(
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.05), radius: 15)
+                        )
+                        .padding(.horizontal, horizontalPadding)
+                    } else {
+                        // Sınıf seçildiğinde gösterilecek içerik
+                        VStack(spacing: 24) {
+                            // Sınıf bilgi kartı
+                            ClassInfoCard(
+                                className: selectedClass?.name ?? "",
+                                studentCount: studentsInClass.count
+                            )
+                            .padding(.horizontal, horizontalPadding)
+                            
+                            // Öğrenci ekleme butonu
+                            HStack {
+                                Button(action: { showAddStudentSheet = true }) {
+                                    HStack {
+                                        Image(systemName: "person.badge.plus")
+                                            .font(.system(size: 18))
+                                        Text("Öğrenci Ekle")
                                             .font(.custom("Outfit-Medium", size: 16))
-                                            .foregroundColor(Color("OilBlack"))
-                                            .padding(.horizontal, 20)
-                                            .padding(.vertical, 10)
-                                            .background(Color.gray.opacity(0.1))
-                                            .cornerRadius(20)
                                     }
+                                    .foregroundColor(Color("BittersweetOrange"))
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 20)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color("BittersweetOrange"), lineWidth: 1)
+                                    )
                                 }
+                                .padding(.leading, horizontalPadding)
+                                Spacer()
                             }
-                            .padding(.horizontal)
-                            .padding(.top, 16)
                             
-                            // Öğrenci Grid
-                            LazyVGrid(columns: [
-                                GridItem(.flexible()),
-                                GridItem(.flexible()),
-                                GridItem(.flexible())
-                            ], spacing: 24) {
+                            // Öğrenci listesi
+                            LazyVGrid(
+                                columns: [
+                                    GridItem(.flexible()),
+                                    GridItem(.flexible()),
+                                    GridItem(.flexible())
+                                ],
+                                spacing: 20
+                            ) {
                                 ForEach(studentsInClass) { student in
-                                    NavigationLink(destination: HomeworkSheet(student: student)) {
-                                        VStack(spacing: 8) {
-                                            Image("girl")
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(width: 80, height: 80)
-                                                .clipShape(Circle())
-                                                .overlay(
-                                                    Circle()
-                                                        .stroke(Color.white, lineWidth: 2)
-                                                )
-                                                .background(
-                                                    Circle()
-                                                        .fill(Color.white)
-                                                        .shadow(color: Color.black.opacity(0.1), radius: 5)
-                                                )
-                                            
-                                            Text(student.name)
-                                                .font(.custom("Outfit-Medium", size: 16))
-                                                .foregroundColor(Color("OilBlack"))
-                                            
-                                            Text(student.studentId)
-                                                .font(.custom("Outfit-Regular", size: 12))
-                                                .foregroundColor(Color("OilBlack"))
-                                        }
+                                    StudentCard(student: student) {
+                                        selectedStudent = student
+                                        showHomeworkSheet = true
                                     }
                                 }
-                                .padding()
                             }
+                            .padding(.horizontal, horizontalPadding)
                         }
                     }
                 }
+                .padding(.bottom, 20)
             }
-            .ignoresSafeArea(.all, edges: .top)
-            .sheet(isPresented: $showAddStudentSheet) {
-                if let selectedClass = selectedClass {
-                    AddStudentSheet(
-                        schoolClass: selectedClass,
-                        onStudentAdded: {
-                            fetchStudentsForClass(classId: selectedClass.id)
-                        }
-                    )
-                    .presentationDetents([.fraction(0.40)])
-                }
-            }
-            .sheet(isPresented: $showClassManagement) {
-                ClassManagementView(selectedClass: $selectedClass)
-                    .presentationDetents([.fraction(0.65)])
-                    .onDisappear {
-                        if let selectedClass = selectedClass {
-                            fetchStudentsForClass(classId: selectedClass.id)
-                        }
+            .background(Color.gray.opacity(0.05))
+            .navigationBarHidden(true)
+        }
+        .sheet(isPresented: $showAddStudentSheet) {
+            if let selectedClass = selectedClass {
+                AddStudentSheet(
+                    schoolClass: selectedClass,
+                    onStudentAdded: {
+                        fetchStudentsForClass(classId: selectedClass.id)
                     }
-            }
-            .onAppear {
-                fetchInitialData()
-            }
-            .onChange(of: selectedClass) { oldValue, newValue in
-                if let newClass = newValue {
-                    fetchStudentsForClass(classId: newClass.id)
-                }
+                )
             }
         }
-        .navigationViewStyle(.stack)
+        .sheet(isPresented: $showClassManagement) {
+            ClassManagementView(selectedClass: $selectedClass)
+        }
+        .sheet(isPresented: $showHomeworkSheet) {
+            if let student = selectedStudent {
+                HomeworkSheet(student: student)
+            }
+        }
+        .onAppear {
+            fetchInitialData()
+            fetchNotifications()
+        }
     }
     
     private func fetchInitialData() {
@@ -186,7 +215,90 @@ struct ClassView: View {
             }
         }
     }
+    
+    private func fetchNotifications() {
+        guard let teacherId = firebaseManager.auth.currentUser?.uid else { return }
+        
+        Task {
+            do {
+                let fetchedNotifications = try await firebaseManager.fetchNotifications(for: teacherId)
+                DispatchQueue.main.async {
+                    self.notifications = fetchedNotifications
+                }
+            } catch {
+                print("Error fetching notifications: \(error)")
+            }
+        }
+    }
 }
+
+// Yardımcı komponentler
+struct ClassInfoCard: View {
+    let className: String
+    let studentCount: Int
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(className)
+                        .font(.custom("Outfit-SemiBold", size: 24))
+                        .foregroundColor(Color("NeutralBlack"))
+                    
+                    Text("\(studentCount) Öğrenci")
+                        .font(.custom("Outfit-Regular", size: 16))
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.05), radius: 15)
+        )
+    }
+}
+
+struct StudentCard: View {
+    let student: Student
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 12) {
+                Image("girl")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 70, height: 70)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 2)
+                    )
+                    .shadow(color: Color.black.opacity(0.1), radius: 5)
+                
+                VStack(spacing: 4) {
+                    Text(student.name)
+                        .font(.custom("Outfit-Medium", size: 16))
+                        .foregroundColor(Color("NeutralBlack"))
+                    
+                    Text(student.studentId)
+                        .font(.custom("Outfit-Regular", size: 12))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.05), radius: 10)
+            )
+        }
+    }
+}
+
 #Preview {
     ClassView()
 }

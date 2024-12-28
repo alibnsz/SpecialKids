@@ -70,27 +70,33 @@ struct AddChildView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom)
             }
-            .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.black)
-                            .imageScale(.large)
-                    }
+            .navigationBarBackButtonHidden()
+            .navigationBarItems(leading: 
+                Button(action: { dismiss() }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.black)
+                        .imageScale(.large)
                 }
-            }
+            )
             .alert("Başarılı!", isPresented: $viewModel.showSuccessAlert) {
                 Button("Tamam", role: .cancel) { }
             } message: {
                 Text("Çocuk başarıyla eklendi.")
             }
         }
+        #if compiler(>=5.9)
         .onChange(of: viewModel.navigateToParentView) { oldValue, newValue in
             if newValue {
                 dismiss()
             }
         }
+        #else
+        .onChange(of: viewModel.navigateToParentView) { newValue in
+            if newValue {
+                dismiss()
+            }
+        }
+        #endif
     }
 }
 
