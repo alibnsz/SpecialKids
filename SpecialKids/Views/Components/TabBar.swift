@@ -21,16 +21,19 @@ struct TeacherTabView: View {
                     Label("Görevler", systemImage: "note.text")
                 }
             
-            Text("Profili Yönet")
+            TeacherSettingsView()
                 .tabItem {
                     Label("Profil", systemImage: "person")
                 }
         }
-        .accentColor(.black)
+        .accentColor(.bittersweetOrange)
     }
 }
 
 struct ParentTabView: View {
+    @State private var pin = ""
+    @State private var isVerified = false
+    
     var body: some View {
         TabView {
             ParentView()
@@ -38,17 +41,22 @@ struct ParentTabView: View {
                     Label("Ana", systemImage: "house")
                 }
             
-            PINVerificationView()
+            PINVerificationView(pin: $pin, isVerified: $isVerified)
                 .tabItem {
                     Label("Oyunlar", systemImage: "gamecontroller")
                 }
             
-            Text("Profil")
+            EducationView()
+                .tabItem {
+                    Label("Eğitim", systemImage: "book.fill")
+                }
+            
+            SettingsView()
                 .tabItem {
                     Label("Profil", systemImage: "person")
                 }
         }
-        .accentColor(Color("BittersweetOrange"))
+        .accentColor(.bittersweetOrange)
     }
 }
 
