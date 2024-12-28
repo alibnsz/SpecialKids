@@ -8,13 +8,75 @@ import FirebaseAppCheck
 class FirebaseManager: ObservableObject {
     static let shared = FirebaseManager()
     var auth = Auth.auth()
-    private var db = Firestore.firestore()
-
+    let db = Firestore.firestore()
+    
+    // Auth state listener'ı saklamak için
+    private var authStateListener: AuthStateDidChangeListenerHandle?
+    
     @Published var currentUserRole: String? = nil
     @Published var isAuthenticated = false
     @Published var classes: [SchoolClass] = []
     @Published var studentIdToAdd: String? = nil
 
+    init() {
+        // UserDefaults'dan kayıtlı oturum bilgilerini kontrol et
+        checkSavedSession()
+        
+        // Auth state değişikliklerini dinle ve listener'ı sakla
+        authStateListener = auth.addStateDidChangeListener { [weak self] _, user in
+            DispatchQueue.main.async {
+                self?.isAuthenticated = user != nil
+                if let user = user {
+                    self?.saveUserSession(userId: user.uid)
+                    self?.fetchUserRole(userId: user.uid)
+                }
+            }
+        }
+    }
+    
+    deinit {
+        // Listener'ı temizle
+        if let listener = authStateListener {
+            auth.removeStateDidChangeListener(listener)
+        }
+    }
+    
+    private func checkSavedSession() {
+        if let _ = UserDefaults.standard.string(forKey: "userId"),
+           let role = UserDefaults.standard.string(forKey: "userRole") {
+            // Kayıtlı oturum varsa Firebase'e otomatik giriş yap
+            self.currentUserRole = role
+            self.isAuthenticated = true
+        }
+    }
+    
+    private func saveUserSession(userId: String) {
+        UserDefaults.standard.set(userId, forKey: "userId")
+    }
+    
+    private func fetchUserRole(userId: String) {
+        // Önce parent koleksiyonunda ara
+        db.collection("parents").document(userId).getDocument { [weak self] document, error in
+            if document?.exists == true {
+                DispatchQueue.main.async {
+                    self?.currentUserRole = "parent"
+                    UserDefaults.standard.set("parent", forKey: "userRole")
+                }
+                return
+            }
+            
+            // Parent değilse teacher koleksiyonunda ara
+            self?.db.collection("teachers").document(userId).getDocument { document, error in
+                DispatchQueue.main.async {
+                    if document?.exists == true {
+                        self?.currentUserRole = "teacher"
+                        UserDefaults.standard.set("teacher", forKey: "userRole")
+                    }
+                }
+            }
+        }
+    }
+    
     // MARK: - Sınıf Oluşturma
     func createClass(name: String, teacherId: String, completion: @escaping (Error?) -> Void) {
         let newClass = SchoolClass(id: UUID().uuidString, name: name, teacherId: teacherId, students: [])
@@ -62,20 +124,26 @@ class FirebaseManager: ObservableObject {
     }
     // MARK: - Öğrencinin Velisini Al
     func fetchParentForStudent(studentId: String, completion: @escaping (String?) -> Void) {
-        db.collection("parents").whereField("children", arrayContains: studentId).getDocuments { snapshot, error in
-            if let error = error {
-                print("Veli bulunamadı: \(error.localizedDescription)")
-                completion(nil)
-                return
+        print("Searching parent for student: \(studentId)") // Debug log
+        
+        db.collection("children")
+            .whereField("studentId", isEqualTo: studentId)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error finding parent: \(error.localizedDescription)")
+                    completion(nil)
+                    return
+                }
+                
+                if let document = snapshot?.documents.first,
+                   let parentId = document.data()["parentId"] as? String {
+                    print("Found parent ID: \(parentId)") // Debug log
+                    completion(parentId)
+                } else {
+                    print("No parent found for student: \(studentId)")
+                    completion(nil)
+                }
             }
-
-            if let documents = snapshot?.documents, let parent = documents.first {
-                // İlk veli belgesinin ID'sini alıyoruz
-                completion(parent.documentID)
-            } else {
-                completion(nil)
-            }
-        }
     }
     // MARK: - Çocuk Ekleme
     func addChildToParent(userId: String, childId: String, childName: String, age: Int, completion: @escaping (Error?) -> Void) {
@@ -92,7 +160,7 @@ class FirebaseManager: ObservableObject {
         ]
         
         // Ana children koleksiyonuna ekle
-        db.collection("children").document(childId).setData(childData) { [weak self] error in
+        db.collection("children").document(childId).setData(childData) { error in
             if let error = error {
                 print("Children koleksiyonuna ekleme hatası: \(error)")
                 completion(error)
@@ -129,8 +197,22 @@ class FirebaseManager: ObservableObject {
             "assignedDate": Timestamp(date: homework.assignedDate)
         ]
         
-        db.collection("homework").document(homework.id).setData(homeworkData) { error in
-            completion(error)
+        // Önce ödevi kaydet
+        db.collection("homework").document(homework.id).setData(homeworkData) { [weak self] error in
+            if let error = error {
+                completion(error)
+                return
+            }
+            
+            // Ödev kaydedildikten sonra bildirim oluştur
+            Task {
+                await self?.sendHomeworkNotification(
+                    homework: homework,
+                    parentId: homework.studentId
+                )
+            }
+            
+            completion(nil)
         }
     }
     func fetchHomeworkForStudent(studentId: String, completion: @escaping ([Homework]?, Error?) -> Void) {
@@ -484,12 +566,13 @@ class FirebaseManager: ObservableObject {
     func signOut() {
         do {
             try auth.signOut()
-            DispatchQueue.main.async {
-                self.currentUserRole = nil
-                self.isAuthenticated = false
-            }
+            currentUserRole = nil
+            isAuthenticated = false
+            // Oturum bilgilerini temizle
+            UserDefaults.standard.removeObject(forKey: "userId")
+            UserDefaults.standard.removeObject(forKey: "userRole")
         } catch {
-            print("Çıkış yapılamadı: \(error.localizedDescription)")
+            print("Error signing out: \(error)")
         }
     }
     // MARK: - Homework Functions
@@ -566,5 +649,286 @@ class FirebaseManager: ObservableObject {
                 completion("Öğretmen")
             }
         }
+    }
+    func saveGameStats(
+        studentId: String,
+        correctMatches: Int,
+        wrongMatches: Int,
+        score: Int,
+        fruits: [FruitMatchResult],
+        playTime: TimeInterval,
+        dailyPlayTime: TimeInterval,
+        gameCompleted: Bool
+    ) {
+        guard let userId = auth.currentUser?.uid else { return }
+        
+        // Önce streak'i güncelle
+        updateStreak(for: studentId) { streak in
+            let gameStatsRef = Firestore.firestore().collection("gameStats")
+            
+            let data: [String: Any] = [
+                "parentId": userId,
+                "studentId": studentId,
+                "correctMatches": correctMatches,
+                "wrongMatches": wrongMatches,
+                "score": score,
+                "lastPlayedDate": Timestamp(date: Date()),
+                "fruits": fruits.map { fruit in
+                    return [
+                        "fruitName": fruit.fruitName,
+                        "isCorrect": fruit.isCorrect,
+                        "attemptCount": fruit.attemptCount
+                    ]
+                },
+                "playTime": playTime,
+                "dailyPlayTime": dailyPlayTime,
+                "gameCompleted": gameCompleted,
+                "streak": streak,
+                "lastStreakDate": Timestamp(date: Date())
+            ]
+            
+            // Önce mevcut istatistikleri kontrol et
+            gameStatsRef
+                .whereField("studentId", isEqualTo: studentId)
+                .whereField("parentId", isEqualTo: userId)
+                .getDocuments { snapshot, error in
+                    if let error = error {
+                        print("Error fetching game stats: \(error)")
+                        return
+                    }
+                    
+                    if let document = snapshot?.documents.first {
+                        // Mevcut istatistikleri güncelle
+                        document.reference.updateData(data)
+                    } else {
+                        // Yeni istatistik oluştur
+                        gameStatsRef.addDocument(data: data)
+                    }
+                }
+        }
+    }
+    func fetchFirstChild(completion: @escaping (Student?) -> Void) {
+        guard let userId = auth.currentUser?.uid else {
+            completion(nil)
+            return
+        }
+        
+        Firestore.firestore().collection("children")
+            .whereField("parentId", isEqualTo: userId)
+            .limit(to: 1)
+            .getDocuments { snapshot, error in
+                if let document = snapshot?.documents.first {
+                    let data = document.data()
+                    let student = Student(
+                        id: document.documentID,
+                        name: data["name"] as? String ?? "",
+                        age: data["age"] as? Int ?? 0,
+                        studentId: data["studentId"] as? String ?? "",
+                        birthDate: (data["birthDate"] as? Timestamp)?.dateValue(),
+                        isPremium: data["isPremium"] as? Bool ?? false
+                    )
+                    completion(student)
+                } else {
+                    completion(nil)
+                }
+            }
+    }
+    func getDailyPlayTime(for studentId: String, completion: @escaping (TimeInterval) -> Void) {
+        guard let userId = auth.currentUser?.uid else {
+            completion(0)
+            return
+        }
+        
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        Firestore.firestore().collection("gameStats")
+            .whereField("studentId", isEqualTo: studentId)
+            .whereField("parentId", isEqualTo: userId)
+            .whereField("lastPlayedDate", isGreaterThanOrEqualTo: startOfDay)
+            .whereField("lastPlayedDate", isLessThan: endOfDay)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching daily play time: \(error)")
+                    completion(0)
+                    return
+                }
+                
+                let totalPlayTime = snapshot?.documents.reduce(0) { sum, document in
+                    sum + (document.data()["playTime"] as? TimeInterval ?? 0)
+                } ?? 0
+                
+                completion(totalPlayTime)
+            }
+    }
+    func updateStreak(for studentId: String, completion: @escaping (Int) -> Void) {
+        guard let userId = auth.currentUser?.uid else { return }
+        
+        let gameStatsRef = Firestore.firestore().collection("gameStats")
+        
+        // Önce mevcut belgeyi kontrol et
+        gameStatsRef
+            .whereField("studentId", isEqualTo: studentId)
+            .whereField("parentId", isEqualTo: userId)
+            .getDocuments { snapshot, error in
+                if let document = snapshot?.documents.first {
+                    let data = document.data()
+                    let lastStreakDate = (data["lastStreakDate"] as? Timestamp)?.dateValue() ?? Date()
+                    let currentStreak = data["streak"] as? Int ?? 0
+                    
+                    let calendar = Calendar.current
+                    let today = calendar.startOfDay(for: Date())
+                    let lastDate = calendar.startOfDay(for: lastStreakDate)
+                    
+                    let daysDifference = calendar.dateComponents([.day], from: lastDate, to: today).day ?? 0
+                    
+                    var newStreak = currentStreak
+                    
+                    if daysDifference == 1 {
+                        // Ardışık gün - seriyi artır
+                        newStreak += 1
+                    } else if daysDifference > 1 {
+                        // Seri bozuldu - sıfırla
+                        newStreak = 1
+                    } else if daysDifference == 0 {
+                        // Ayn�� gün - seriyi koru
+                        newStreak = currentStreak
+                    }
+                    
+                    // Streak'i güncelle
+                    document.reference.updateData([
+                        "streak": newStreak,
+                        "lastStreakDate": Timestamp(date: Date())
+                    ])
+                    
+                    completion(newStreak)
+                } else {
+                    // İlk kez oynuyor - yeni belge oluştur
+                    let newData: [String: Any] = [
+                        "parentId": userId,
+                        "studentId": studentId,
+                        "streak": 1,
+                        "lastStreakDate": Timestamp(date: Date()),
+                        "correctMatches": 0,
+                        "wrongMatches": 0,
+                        "score": 0,
+                        "playTime": 0,
+                        "dailyPlayTime": 0,
+                        "gameCompleted": false,
+                        "fruits": []
+                    ]
+                    
+                    gameStatsRef.addDocument(data: newData)
+                    completion(1)
+                }
+            }
+    }
+    // MARK: - Ödev ve Bildirim İşlemleri
+    func sendHomeworkNotification(homework: Homework, parentId: String) async {
+        print("Creating notification for homework: \(homework.id) to parent: \(parentId)")
+        
+        let notification = Notification(
+            id: UUID().uuidString,
+            parentId: parentId,
+            title: "Yeni Ödev",
+            message: "'\(homework.title)' başlıklı yeni bir ödev gönderildi.",
+            date: Date(),
+            isRead: false,
+            homeworkId: homework.id,
+            homework: homework,
+            type: .homework
+        )
+        
+        do {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                do {
+                    try db.collection("notifications")
+                        .document()
+                        .setData(from: notification) { error in
+                            if let error = error {
+                                continuation.resume(throwing: error)
+                            } else {
+                                continuation.resume()
+                            }
+                        }
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+            
+            print("Homework notification sent successfully")
+        } catch {
+            print("Error sending homework notification: \(error)")
+        }
+    }
+    
+    func fetchTeacherHomeworks(teacherId: String) async {
+        do {
+            let snapshot = try await db.collection("homework")
+                .whereField("teacherId", isEqualTo: teacherId)
+                .order(by: "assignedDate", descending: true)
+                .getDocuments()
+            
+            let homeworks = snapshot.documents.compactMap { document -> Homework? in
+                try? document.data(as: Homework.self)
+            }
+            
+            // Her ödev için bildirim oluştur
+            for homework in homeworks {
+                await sendHomeworkNotification(
+                    homework: homework,
+                    parentId: homework.studentId
+                )
+            }
+            
+        } catch {
+            print("Error fetching homeworks: \(error)")
+        }
+    }
+    
+    func fetchNotifications(for userId: String) async throws -> [Notification] {
+        print("Fetching notifications for user: \(userId)")
+        
+        let notificationsSnapshot = try await db.collection("notifications")
+            .whereField("parentId", isEqualTo: userId)
+            .getDocuments()
+        
+        print("Found \(notificationsSnapshot.documents.count) notifications")
+        
+        var notifications: [Notification] = []
+        
+        for document in notificationsSnapshot.documents {
+            print("Processing notification document: \(document.documentID)")
+            do {
+                var notification = try document.data(as: Notification.self)
+                
+                if notification.type == .homework,
+                   let homeworkId = notification.homeworkId {
+                    print("Fetching homework details for ID: \(homeworkId)")
+                    do {
+                        if let homework = try await fetchHomeworkDetails(homeworkId: homeworkId) {
+                            notification.homework = homework
+                            print("Found homework: \(homework.title)")
+                        }
+                    } catch {
+                        print("Error fetching homework details: \(error)")
+                    }
+                }
+                
+                notifications.append(notification)
+            } catch {
+                print("Error decoding notification: \(error)")
+            }
+        }
+        
+        return notifications.sorted { $0.date > $1.date }
+    }
+    func fetchHomeworkDetails(homeworkId: String) async throws -> Homework? {
+        let document = try await db.collection("homework")
+            .document(homeworkId)
+            .getDocument()
+        
+        return try document.data(as: Homework.self)
     }
 }

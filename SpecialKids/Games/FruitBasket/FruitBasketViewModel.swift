@@ -17,9 +17,14 @@ class FruitBasketViewModel: ObservableObject {
     @Published var scoreChange = false
     @Published var gameCompleted = false
     @Published var correctAnswer = false
+    @Published var correctMatches = 0
+    @Published var wrongMatches = 0
+    @Published var fruitResults: [FruitMatchResult] = []
     
     private var unusedFruits: [(String, String, Color, String, String, String)]
     private var audioPlayer: AVAudioPlayer?
+    private var startTime: Date?
+    private var playTime: TimeInterval = 0
     
     let fruitData = [
         ("🍎", "Elma", Color.red, "Sonbahar", "C ve B", "Bir elma yemek, kahve içmekten daha fazla enerji verir!"),
@@ -85,14 +90,25 @@ class FruitBasketViewModel: ObservableObject {
     }
     
     func checkFruit(_ selectedFruit: FruitItem) {
-        if selectedFruit.emoji == targetFruit.emoji {
+        if selectedFruit == targetFruit {
             // Doğru seçim
+            correctMatches += 1
             withAnimation {
                 score += 10
                 scoreChange = true
                 message = "Harika! Doğru meyveyi buldun! 🎉"
                 correctAnswer.toggle()
             }
+            
+            // Doğru eşleşmeyi kaydet
+            fruitResults.append(FruitMatchResult(
+                fruitName: selectedFruit.name,
+                isCorrect: true,
+                attemptCount: 1
+            ))
+            
+            // Her doğru cevaptan sonra kaydet
+            saveGameResults()
             
             playSound("correct")
             
@@ -109,12 +125,31 @@ class FruitBasketViewModel: ObservableObject {
             }
         } else {
             // Yanlış seçim
+            wrongMatches += 1
             withAnimation {
+                score = max(0, score - 5)
+                scoreChange = true
                 message = "Tekrar dene! Bu \(selectedFruit.name) değil 💪"
+                correctAnswer = false
             }
+            
+            // Yanlış eşleşmeyi kaydet
+            if let index = fruitResults.firstIndex(where: { $0.fruitName == selectedFruit.name }) {
+                fruitResults[index].attemptCount += 1
+            } else {
+                fruitResults.append(FruitMatchResult(
+                    fruitName: selectedFruit.name,
+                    isCorrect: false,
+                    attemptCount: 1
+                ))
+            }
+            
             playSound("wrong")
             let generator = UIImpactFeedbackGenerator(style: .medium)
             generator.impactOccurred()
+            
+            // Her yanlış cevaptan sonra da kaydet
+            saveGameResults()
         }
     }
     
@@ -126,6 +161,44 @@ class FruitBasketViewModel: ObservableObject {
             audioPlayer?.play()
         } catch {
             print("Ses çalınamadı!")
+        }
+    }
+    
+    func startGame() {
+        startTime = Date()
+    }
+    
+    func endGame() {
+        if let start = startTime {
+            playTime += Date().timeIntervalSince(start)
+            startTime = nil
+        }
+    }
+    
+    func saveGameResults() {
+        FirebaseManager.shared.fetchFirstChild { [weak self] student in
+            guard let self = self, let student = student else { return }
+            
+            // Önce günlük toplam süreyi al
+            FirebaseManager.shared.getDailyPlayTime(for: student.id) { dailyTime in
+                // Oyun süresini hesapla
+                if let start = self.startTime {
+                    self.playTime += Date().timeIntervalSince(start)
+                }
+                
+                let totalDailyTime = dailyTime + self.playTime
+                
+                FirebaseManager.shared.saveGameStats(
+                    studentId: student.id,
+                    correctMatches: self.correctMatches,
+                    wrongMatches: self.wrongMatches,
+                    score: self.score,
+                    fruits: self.fruitResults,
+                    playTime: self.playTime,
+                    dailyPlayTime: totalDailyTime,
+                    gameCompleted: self.gameCompleted
+                )
+            }
         }
     }
 }

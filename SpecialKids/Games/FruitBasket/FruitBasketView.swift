@@ -44,7 +44,7 @@ struct FruitBasketView: View {
                 Spacer()
                 
                 if viewModel.gameCompleted {
-                    GameCompletedView(score: viewModel.score)
+                    GameCompletedView(score: viewModel.score, viewModel: viewModel)
                         .transition(.scale.combined(with: .opacity))
                 } else {
                     GameContentView(
@@ -60,7 +60,11 @@ struct FruitBasketView: View {
             }
         }
         .onAppear {
-            isRotating = true
+            viewModel.startGame()
+        }
+        .onDisappear {
+            viewModel.endGame()
+            viewModel.saveGameResults()
         }
     }
 }
@@ -236,6 +240,8 @@ struct FruitOptionButton: View {
 
 struct GameCompletedView: View {
     let score: Int
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var viewModel: FruitBasketViewModel
     
     var body: some View {
         VStack(spacing: 20) {
@@ -256,6 +262,19 @@ struct GameCompletedView: View {
                         .fill(Color.orange.opacity(0.8))
                         .shadow(radius: 5)
                 )
+            
+            Button("Ana Menüye Dön") {
+                viewModel.saveGameResults()
+                dismiss()
+            }
+            .font(.title3.bold())
+            .foregroundColor(.white)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 15)
+                    .fill(Color.green.opacity(0.8))
+                    .shadow(radius: 5)
+            )
         }
         .padding()
     }
