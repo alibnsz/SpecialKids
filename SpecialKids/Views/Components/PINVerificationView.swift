@@ -5,11 +5,8 @@ struct PINVerificationView: View {
     @Binding var isVerified: Bool
     @State private var enteredPIN: String = ""
     @State private var randomPIN: String = ""
-    @State private var isCorrect: Bool = false
     @State private var showError: Bool = false
-    @State private var mathQuestion: (String, Int) = ("", 0)
-    @State private var mathAnswer: String = ""
-    @State private var showMathVerification: Bool = false
+    @State private var navigateToGames = false
     
     var body: some View {
         NavigationStack {
@@ -22,154 +19,88 @@ struct PINVerificationView: View {
                 )
                 .ignoresSafeArea()
                 
-                VStack(spacing: 30) {
+                VStack(spacing: 20) {
                     // Üst başlık alanı
-                    VStack(spacing: 12) {
+                    VStack(spacing: 8) {
                         Image(systemName: "lock.shield.fill")
-                            .font(.system(size: 50))
+                            .font(.system(size: 40))
                             .foregroundColor(Color("BittersweetOrange"))
-                            .padding(.bottom, 10)
+                            .padding(.bottom, 8)
                         
                         Text("Ebeveyn Doğrulaması")
-                            .font(.custom("Outfit-SemiBold", size: 28))
+                            .font(.custom("Outfit-SemiBold", size: 24))
                             .foregroundColor(.primary)
                         
                         Text("Oyunlar bölümüne erişmek için lütfen doğrulama adımlarını tamamlayın")
-                            .font(.custom("Outfit-Regular", size: 16))
+                            .font(.custom("Outfit-Regular", size: 14))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                            .padding(.horizontal, 16)
                     }
-                    .padding(.top, 40)
+                    .padding(.top, 24)
                     
-                    if !showMathVerification {
-                        // PIN doğrulama alanı
-                        VStack(spacing: 25) {
-                            Text("Ekrandaki PIN Kodunu Girin")
-                                .font(.custom("Outfit-Medium", size: 18))
-                                .foregroundColor(.secondary)
-                            
-                            PINDisplayView(pin: randomPIN)
-                            
-                            CustomSecureField(text: $enteredPIN, placeholder: "PIN Kodunu Girin")
-                                .keyboardType(.numberPad)
-                                #if compiler(>=5.9)
-                                .onChange(of: enteredPIN) { oldValue, newValue in
-                                    if newValue.count > 4 {
-                                        enteredPIN = String(newValue.prefix(4))
-                                    }
-                                }
-                                #else
-                                .onChange(of: enteredPIN) { value in
-                                    if value.count > 4 {
-                                        enteredPIN = String(value.prefix(4))
-                                    }
-                                }
-                                #endif
-                        }
-                        .padding(.horizontal, 20)
-                    } else {
-                        // Matematik sorusu alanı
-                        VStack(spacing: 25) {
-                            Text("Matematik Sorusunu Cevaplayın")
-                                .font(.custom("Outfit-Medium", size: 18))
-                                .foregroundColor(.secondary)
-                            
-                            Text(mathQuestion.0)
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.primary)
-                            
-                            CustomTextField(
-                                placeholder: "Cevabınızı girin",
-                                text: $mathAnswer
-                            )
-                            .keyboardType(.numberPad)
-                        }
-                        .padding(.horizontal, 20)
+                    // PIN doğrulama alanı
+                    VStack(spacing: 24) {
+                        Text("Ekrandaki PIN Kodunu Girin")
+                            .font(.custom("Outfit-Medium", size: 18))
+                            .foregroundColor(.secondary)
+                        
+                        PINDisplayView(pin: randomPIN)
+                            .padding(.vertical, 12)
+                        
+                        CustomTextField(
+                            placeholder: "PIN Kodunu Girin",
+                            text: $enteredPIN,
+                            isSecure: true
+                        )
+                        .keyboardType(.numberPad)
+                        .frame(maxWidth: .infinity)
                     }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 20)
                     
                     // Doğrulama butonu
                     CustomButtonView(
-                        title: showMathVerification ? "Cevapla" : "Doğrula",
+                        title: "Doğrula",
                         type: .primary
                     ) {
-                        if showMathVerification {
-                            verifyMathAnswer()
-                        } else {
-                            verifyPIN()
-                        }
+                        verifyPIN()
                     }
-                    .padding(.horizontal, 40)
-                    .padding(.top, 20)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 24)
                     
                     if showError {
-                        Text(showMathVerification ? "Yanlış cevap, tekrar deneyin." : "Yanlış PIN kodu, tekrar deneyin.")
+                        Text("Yanlış PIN kodu, tekrar deneyin.")
                             .foregroundColor(.red)
-                            .font(.custom("Outfit-Regular", size: 14))
+                            .font(.custom("Outfit-Regular", size: 16))
+                            .padding(.top, 12)
                     }
                     
                     Spacer()
-                    
-                    if isCorrect {
-                        NavigationLink(destination: GameSelectionView(), isActive: $isVerified) {
-                            EmptyView()
-                        }
-                    }
                 }
+                .padding(.horizontal, 16)
             }
-            .navigationDestination(for: String.self) { _ in
+            .navigationDestination(isPresented: $navigateToGames) {
                 GameSelectionView()
             }
-        }
-        .onAppear {
-            generateRandomPIN()
-            generateMathQuestion()
-        }
-        .onChange(of: isCorrect) { newValue in
-            if newValue {
-                isVerified = true
+            .onAppear {
+                generateRandomPIN()
             }
         }
     }
     
-    // Helper fonksiyonlar...
     private func generateRandomPIN() {
         randomPIN = String(format: "%04d", Int.random(in: 0...9999))
     }
     
-    private func generateMathQuestion() {
-        let operations = [
-            ("+", { (a: Int, b: Int) -> Int in a + b }),
-            ("-", { (a: Int, b: Int) -> Int in a - b }),
-            ("×", { (a: Int, b: Int) -> Int in a * b })
-        ]
-        let operation = operations.randomElement()!
-        let num1 = Int.random(in: 5...20)
-        let num2 = Int.random(in: 2...10)
-        mathQuestion = ("\(num1) \(operation.0) \(num2) = ?", operation.1(num1, num2))
-    }
-    
     private func verifyPIN() {
         if enteredPIN == randomPIN {
-            showMathVerification = true
+            isVerified = true
             showError = false
-            enteredPIN = ""
+            navigateToGames = true
         } else {
             showError = true
             enteredPIN = ""
-        }
-    }
-    
-    private func verifyMathAnswer() {
-        if Int(mathAnswer) == mathQuestion.1 {
-            isCorrect = true
-            showError = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isVerified = true
-            }
-        } else {
-            showError = true
-            mathAnswer = ""
         }
     }
 }
@@ -198,42 +129,6 @@ struct PINDisplayView: View {
     }
 }
 
-struct CustomSecureField: View {
-    let text: Binding<String>
-    let placeholder: String
-    
-    init(text: Binding<String>, placeholder: String) {
-        self.text = text
-        self.placeholder = placeholder
-    }
-    
-    var body: some View {
-        ZStack(alignment: .leading) {
-            if text.wrappedValue.isEmpty {
-                Text(placeholder)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal)
-            }
-            
-            TextField("", text: text)
-                .padding()
-                .frame(height: 50)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                )
-                .textContentType(.oneTimeCode)
-                .submitLabel(.done)
-                .toolbar {
-                    ToolbarItem(placement: .keyboard) {
-                        Spacer()
-                    }
-                }
-        }
-        .padding(.horizontal)
-    }
-}
-
 // PIN Field Komponenti
 struct PINField: View {
     @Binding var pin: String
@@ -248,9 +143,9 @@ struct PINField: View {
             }
             
             // PIN Girişi
-            CustomSecureField(
-                text: $pin,
-                placeholder: "6 haneli PIN kodunu girin"
+            CustomTextField(
+                placeholder: "6 haneli PIN kodunu girin",
+                text: $pin
             )
             .keyboardType(.numberPad)
             #if compiler(>=5.9)
