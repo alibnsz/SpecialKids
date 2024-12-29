@@ -662,50 +662,65 @@ class FirebaseManager: ObservableObject {
     ) {
         guard let userId = auth.currentUser?.uid else { return }
         
-        // Önce streak'i güncelle
-        updateStreak(for: studentId) { streak in
-            let gameStatsRef = Firestore.firestore().collection("gameStats")
-            
-            let data: [String: Any] = [
-                "parentId": userId,
-                "studentId": studentId,
-                "correctMatches": correctMatches,
-                "wrongMatches": wrongMatches,
-                "score": score,
-                "lastPlayedDate": Timestamp(date: Date()),
-                "fruits": fruits.map { fruit in
-                    return [
-                        "fruitName": fruit.fruitName,
-                        "isCorrect": fruit.isCorrect,
-                        "attemptCount": fruit.attemptCount
-                    ]
-                },
-                "playTime": playTime,
-                "dailyPlayTime": dailyPlayTime,
-                "gameCompleted": gameCompleted,
-                "streak": streak,
-                "lastStreakDate": Timestamp(date: Date())
-            ]
-            
-            // Önce mevcut istatistikleri kontrol et
-            gameStatsRef
-                .whereField("studentId", isEqualTo: studentId)
-                .whereField("parentId", isEqualTo: userId)
-                .getDocuments { snapshot, error in
-                    if let error = error {
-                        print("Error fetching game stats: \(error)")
-                        return
-                    }
+        let gameStatsRef = Firestore.firestore().collection("gameStats")
+        let today = Date()
+        
+        // Önce mevcut belgeyi kontrol et
+        gameStatsRef
+            .whereField("studentId", isEqualTo: studentId)
+            .getDocuments { snapshot, error in
+                if let document = snapshot?.documents.first {
+                    let data = document.data()
+                    let lastPlayDate = (data["lastPlayDate"] as? Timestamp)?.dateValue() ?? Date()
                     
-                    if let document = snapshot?.documents.first {
-                        // Mevcut istatistikleri güncelle
-                        document.reference.updateData(data)
-                    } else {
-                        // Yeni istatistik oluştur
-                        gameStatsRef.addDocument(data: data)
-                    }
+                    // Gün kontrolü
+                    let calendar = Calendar.current
+                    let currentDay = calendar.startOfDay(for: today)
+                    let lastDay = calendar.startOfDay(for: lastPlayDate)
+                    
+                    let updatedDailyTime = currentDay == lastDay ? dailyPlayTime : playTime
+                    
+                    // Belgeyi güncelle
+                    document.reference.updateData([
+                        "correctMatches": correctMatches,
+                        "wrongMatches": wrongMatches,
+                        "score": score,
+                        "fruits": fruits.map { fruit in
+                            [
+                                "fruitName": fruit.fruitName,
+                                "isCorrect": fruit.isCorrect,
+                                "attemptCount": fruit.attemptCount
+                            ]
+                        },
+                        "playTime": playTime,
+                        "dailyPlayTime": updatedDailyTime,
+                        "gameCompleted": gameCompleted,
+                        "lastPlayDate": Timestamp(date: today)
+                    ])
+                } else {
+                    // Yeni belge oluştur
+                    let newData: [String: Any] = [
+                        "studentId": studentId,
+                        "parentId": userId,
+                        "correctMatches": correctMatches,
+                        "wrongMatches": wrongMatches,
+                        "score": score,
+                        "fruits": fruits.map { fruit in
+                            [
+                                "fruitName": fruit.fruitName,
+                                "isCorrect": fruit.isCorrect,
+                                "attemptCount": fruit.attemptCount
+                            ]
+                        },
+                        "playTime": playTime,
+                        "dailyPlayTime": playTime,
+                        "gameCompleted": gameCompleted,
+                        "lastPlayDate": Timestamp(date: today)
+                    ]
+                    
+                    gameStatsRef.addDocument(data: newData)
                 }
-        }
+            }
     }
     func fetchFirstChild(completion: @escaping (Student?) -> Void) {
         guard let userId = auth.currentUser?.uid else {
@@ -734,32 +749,36 @@ class FirebaseManager: ObservableObject {
             }
     }
     func getDailyPlayTime(for studentId: String, completion: @escaping (TimeInterval) -> Void) {
-        guard let userId = auth.currentUser?.uid else {
-            completion(0)
-            return
-        }
+        let db = Firestore.firestore()
+        let gameStatsRef = db.collection("gameStats")
         
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: Date())
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-        
-        Firestore.firestore().collection("gameStats")
+        gameStatsRef
             .whereField("studentId", isEqualTo: studentId)
-            .whereField("parentId", isEqualTo: userId)
-            .whereField("lastPlayedDate", isGreaterThanOrEqualTo: startOfDay)
-            .whereField("lastPlayedDate", isLessThan: endOfDay)
             .getDocuments { snapshot, error in
-                if let error = error {
-                    print("Error fetching daily play time: \(error)")
+                if let document = snapshot?.documents.first {
+                    let data = document.data()
+                    let lastPlayDate = (data["lastPlayDate"] as? Timestamp)?.dateValue() ?? Date()
+                    let dailyPlayTime = data["dailyPlayTime"] as? Double ?? 0
+                    
+                    // Gün kontrolü
+                    let calendar = Calendar.current
+                    let today = calendar.startOfDay(for: Date())
+                    let lastDate = calendar.startOfDay(for: lastPlayDate)
+                    
+                    if today != lastDate {
+                        // Yeni gün başlamış, süreyi sıfırla
+                        document.reference.updateData([
+                            "dailyPlayTime": 0,
+                            "lastPlayDate": Timestamp(date: Date())
+                        ])
+                        completion(0)
+                    } else {
+                        // Aynı gün, mevcut süreyi döndür
+                        completion(dailyPlayTime)
+                    }
+                } else {
                     completion(0)
-                    return
                 }
-                
-                let totalPlayTime = snapshot?.documents.reduce(0) { sum, document in
-                    sum + (document.data()["playTime"] as? TimeInterval ?? 0)
-                } ?? 0
-                
-                completion(totalPlayTime)
             }
     }
     func updateStreak(for studentId: String, completion: @escaping (Int) -> Void) {
@@ -792,7 +811,7 @@ class FirebaseManager: ObservableObject {
                         // Seri bozuldu - sıfırla
                         newStreak = 1
                     } else if daysDifference == 0 {
-                        // Ayn�� gün - seriyi koru
+                        // Aynı gün - seriyi koru
                         newStreak = currentStreak
                     }
                     
@@ -888,34 +907,22 @@ class FirebaseManager: ObservableObject {
     }
     
     func fetchNotifications(for userId: String) async throws -> [Notification] {
-        print("Fetching notifications for user: \(userId)")
-        
         let notificationsSnapshot = try await db.collection("notifications")
             .whereField("parentId", isEqualTo: userId)
             .getDocuments()
         
-        print("Found \(notificationsSnapshot.documents.count) notifications")
-        
         var notifications: [Notification] = []
         
         for document in notificationsSnapshot.documents {
-            print("Processing notification document: \(document.documentID)")
             do {
                 var notification = try document.data(as: Notification.self)
                 
                 if notification.type == .homework,
                    let homeworkId = notification.homeworkId {
-                    print("Fetching homework details for ID: \(homeworkId)")
-                    do {
-                        if let homework = try await fetchHomeworkDetails(homeworkId: homeworkId) {
-                            notification.homework = homework
-                            print("Found homework: \(homework.title)")
-                        }
-                    } catch {
-                        print("Error fetching homework details: \(error)")
+                    if let homework = try await fetchHomeworkDetails(homeworkId: homeworkId) {
+                        notification.homework = homework
                     }
                 }
-                
                 notifications.append(notification)
             } catch {
                 print("Error decoding notification: \(error)")
@@ -930,5 +937,33 @@ class FirebaseManager: ObservableObject {
             .getDocument()
         
         return try document.data(as: Homework.self)
+    }
+    // Hedef süreyi kaydetmek için yeni fonksiyon
+    func saveDailyTarget(minutes: TimeInterval) {
+        guard let userId = auth.currentUser?.uid else { return }
+        
+        db.collection("parents")
+            .document(userId)
+            .updateData([
+                "dailyTarget": minutes
+            ])
+    }
+    // Hedef süreyi getirmek için yeni fonksiyon
+    func fetchDailyTarget(completion: @escaping (TimeInterval) -> Void) {
+        guard let userId = auth.currentUser?.uid else {
+            completion(30 * 60) // varsayılan değer
+            return
+        }
+        
+        db.collection("parents")
+            .document(userId)
+            .getDocument { document, error in
+                if let data = document?.data(),
+                   let target = data["dailyTarget"] as? TimeInterval {
+                    completion(target)
+                } else {
+                    completion(30 * 60) // varsayılan değer
+                }
+            }
     }
 }

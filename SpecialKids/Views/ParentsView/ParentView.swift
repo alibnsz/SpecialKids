@@ -11,9 +11,9 @@ struct ParentView: View {
     @State private var parentName: String = ""
     @State private var notifications: [Notification] = []
     @State private var showNotifications = false
+    @State private var dailyTarget: TimeInterval = 30 * 60 // 30 dakika varsayılan değer
     
-    private let dailyTarget: TimeInterval = 30 * 60 // 30 dakika varsayılan hedef
-    private let horizontalPadding: CGFloat = 20 // Standart yatay padding
+    private let horizontalPadding: CGFloat = 20
     
     var body: some View {
             ScrollView {
@@ -79,9 +79,11 @@ struct ParentView: View {
                 fetchChildren()
             fetchParentName()
             fetchNotifications()
+            fetchSavedDailyTarget()
         }
         .sheet(isPresented: $showTargetSheet) {
-            TargetSettingSheet()
+            TargetSettingSheet(dailyTarget: $dailyTarget)
+                .presentationDetents([.medium])
         }
         .sheet(isPresented: $showAddChildSheet) {
             AddChildView()
@@ -139,19 +141,22 @@ struct ParentView: View {
     
     private func fetchNotifications() {
         guard let parentId = FirebaseManager.shared.auth.currentUser?.uid else { return }
-        print("Fetching notifications for parentId: \(parentId)") // Debug log
         
         Task {
             do {
                 let notifications = try await FirebaseManager.shared.fetchNotifications(for: parentId)
-                print("Fetched notifications count: \(notifications.count)") // Debug log
-                
                 await MainActor.run {
                     self.notifications = notifications
                 }
             } catch {
                 print("Error fetching notifications: \(error)")
             }
+        }
+    }
+    
+    private func fetchSavedDailyTarget() {
+        FirebaseManager.shared.fetchDailyTarget { target in
+            self.dailyTarget = target
         }
     }
 }
@@ -211,11 +216,23 @@ struct DailyProgressCard: View {
                     // Seri bilgisi
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 4) {
-                            Image(systemName: "flame.fill")
-                                .foregroundColor(.orange)
+                            // Ateş efekti (animasyonsuz)
+                            ForEach(0..<min(streak, 5), id: \.self) { _ in
+                                Image(systemName: "flame.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.system(size: 16))
+                            }
+                            
                             Text("\(streak) Günlük Seri")
-                                .font(.custom("Outfit-Medium", size: 16))
+                                .font(.custom("Outfit-Medium", size: 14))
+                                .foregroundColor(.secondary)
                         }
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.orange.opacity(0.1))
+                        )
                         
                         Text("Seriyi korumak için her gün oyna")
                             .font(.custom("Outfit-Regular", size: 12))
@@ -224,13 +241,13 @@ struct DailyProgressCard: View {
                 }
             }
             
-            // Alt kısım - Yıldızlar
+            // Alt kısım - Yıldızlar yerine ateşler (animasyonsuz)
             HStack(spacing: 12) {
                 ForEach(0..<5) { index in
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(index < (gameStats?.score ?? 0) / 20 ? .yellow : .gray.opacity(0.3))
-                        .shadow(color: index < (gameStats?.score ?? 0) / 20 ? .orange.opacity(0.3) : .clear, radius: 4)
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(index < (gameStats?.score ?? 0) / 20 ? .orange : .gray.opacity(0.3))
+                        .shadow(color: index < (gameStats?.score ?? 0) / 20 ? .orange.opacity(0.5) : .clear, radius: 4)
                 }
             }
         }
@@ -255,29 +272,38 @@ struct DailyProgressCard: View {
             .addSnapshotListener { snapshot, error in
                 if let document = snapshot?.documents.first {
                     let data = document.data()
+                    let lastPlayDate = (data["lastPlayDate"] as? Timestamp)?.dateValue() ?? Date()
                     
-                    let fruitsData = data["fruits"] as? [[String: Any]] ?? []
-                    let fruits = fruitsData.map { fruitData in
-                        FruitMatchResult(
-                            fruitName: fruitData["fruitName"] as? String ?? "",
-                            isCorrect: fruitData["isCorrect"] as? Bool ?? false,
-                            attemptCount: fruitData["attemptCount"] as? Int ?? 0
-                        )
-                    }
+                    // Gün kontrolü
+                    let calendar = Calendar.current
+                    let today = calendar.startOfDay(for: Date())
+                    let lastDate = calendar.startOfDay(for: lastPlayDate)
+                    
+                    // Eğer yeni bir gün başladıysa dailyPlayTime sıfırlanmalı
+                    let dailyPlayTime = today == lastDate ? 
+                        (data["dailyPlayTime"] as? TimeInterval ?? 0) : 0
                     
                     self.gameStats = GameStats(
                         correctMatches: data["correctMatches"] as? Int ?? 0,
                         wrongMatches: data["wrongMatches"] as? Int ?? 0,
                         score: data["score"] as? Int ?? 0,
-                        lastPlayedDate: (data["lastPlayedDate"] as? Timestamp)?.dateValue() ?? Date(),
-                        fruits: fruits,
+                        lastPlayedDate: lastPlayDate,
+                        fruits: [], // Diğer veriler aynı kalabilir
                         playTime: data["playTime"] as? TimeInterval ?? 0,
-                        dailyPlayTime: data["dailyPlayTime"] as? TimeInterval ?? 0,
+                        dailyPlayTime: dailyPlayTime, // Güncellenen dailyPlayTime
                         gameCompleted: data["gameCompleted"] as? Bool ?? false,
                         streak: data["streak"] as? Int ?? 0,
-                        lastStreakDate: (data["lastStreakDate"] as? Timestamp)?.dateValue() ?? Date(),
-                        studentId: data["studentId"] as? String ?? ""
+                        lastStreakDate: lastPlayDate,
+                        studentId: child.id
                     )
+                    
+                    // Eğer yeni gün başladıysa, Firestore'da da güncelle
+                    if today != lastDate {
+                        document.reference.updateData([
+                            "dailyPlayTime": 0,
+                            "lastPlayDate": Timestamp(date: Date())
+                        ])
+                    }
                 }
             }
     }
@@ -677,33 +703,41 @@ struct SummaryRow: View {
 // MARK: - Target Setting Sheet
 struct TargetSettingSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedTarget: Int = 30
+    @State private var selectedTarget: Int = 16
+    @Binding var dailyTarget: TimeInterval
+    
+    private func saveTarget() {
+        let targetInSeconds = TimeInterval(selectedTarget * 60)
+        dailyTarget = targetInSeconds
+        FirebaseManager.shared.saveDailyTarget(minutes: targetInSeconds)
+        dismiss()
+    }
     
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
                 Text("Günlük Hedef Belirle")
                     .font(.custom("Outfit-Bold", size: 24))
+                    .multilineTextAlignment(.center)
+                
+                Text("Çocuğunuzun gelişimi için düzenli uygulama kalıcı sonuçlar sağlayacaktır. Günde en az 16 dakika pratik yapması tavsiye edilir.")
+                    .font(.custom("Outfit-ExtraLight", size: 14))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
                 
                 Picker("Dakika", selection: $selectedTarget) {
-                    ForEach([15, 30, 45, 60, 90, 120], id: \.self) { minute in
+                    ForEach([8, 16, 30], id: \.self) { minute in
                         Text("\(minute) dakika")
                             .tag(minute)
                     }
                 }
                 .pickerStyle(.wheel)
                 
-                Button("Kaydet") {
-                    // Hedefi kaydet
-                    dismiss()
+                CustomButtonView(title: "Kaydet", type: .secondary) {
+                    saveTarget()
                 }
-                .font(.custom("Outfit-SemiBold", size: 16))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color("BittersweetOrange"))
-                .cornerRadius(12)
-                .padding(.horizontal)
+
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -871,29 +905,38 @@ struct ChildCardView: View {
             .addSnapshotListener { snapshot, error in
                 if let document = snapshot?.documents.first {
                     let data = document.data()
+                    let lastPlayDate = (data["lastPlayDate"] as? Timestamp)?.dateValue() ?? Date()
                     
-                    let fruitsData = data["fruits"] as? [[String: Any]] ?? []
-                    let fruits = fruitsData.map { fruitData in
-                        FruitMatchResult(
-                            fruitName: fruitData["fruitName"] as? String ?? "",
-                            isCorrect: fruitData["isCorrect"] as? Bool ?? false,
-                            attemptCount: fruitData["attemptCount"] as? Int ?? 0
-                        )
-                    }
+                    // Gün kontrolü
+                    let calendar = Calendar.current
+                    let today = calendar.startOfDay(for: Date())
+                    let lastDate = calendar.startOfDay(for: lastPlayDate)
+                    
+                    // Eğer yeni bir gün başladıysa dailyPlayTime sıfırlanmalı
+                    let dailyPlayTime = today == lastDate ? 
+                        (data["dailyPlayTime"] as? TimeInterval ?? 0) : 0
                     
                     self.gameStats = GameStats(
                         correctMatches: data["correctMatches"] as? Int ?? 0,
                         wrongMatches: data["wrongMatches"] as? Int ?? 0,
                         score: data["score"] as? Int ?? 0,
-                        lastPlayedDate: (data["lastPlayedDate"] as? Timestamp)?.dateValue() ?? Date(),
-                        fruits: fruits,
+                        lastPlayedDate: lastPlayDate,
+                        fruits: [], // Diğer veriler aynı kalabilir
                         playTime: data["playTime"] as? TimeInterval ?? 0,
-                        dailyPlayTime: data["dailyPlayTime"] as? TimeInterval ?? 0,
+                        dailyPlayTime: dailyPlayTime, // Güncellenen dailyPlayTime
                         gameCompleted: data["gameCompleted"] as? Bool ?? false,
                         streak: data["streak"] as? Int ?? 0,
-                        lastStreakDate: (data["lastStreakDate"] as? Timestamp)?.dateValue() ?? Date(),
-                        studentId: data["studentId"] as? String ?? ""
+                        lastStreakDate: lastPlayDate,
+                        studentId: child.id
                     )
+                    
+                    // Eğer yeni gün başladıysa, Firestore'da da güncelle
+                    if today != lastDate {
+                        document.reference.updateData([
+                            "dailyPlayTime": 0,
+                            "lastPlayDate": Timestamp(date: Date())
+                        ])
+                    }
                 }
             }
     }
