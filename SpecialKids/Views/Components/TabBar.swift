@@ -16,7 +16,7 @@ struct TeacherTabView: View {
                     Label("Ana", systemImage: "house")
                 }
             
-            ClassView()
+            CurriculumView()
                 .tabItem {
                     Label("Görevler", systemImage: "note.text")
                 }
