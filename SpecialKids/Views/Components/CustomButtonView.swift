@@ -36,8 +36,22 @@ struct CustomButtonView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: type.height)
-        .background(disabled ? Color.gray.opacity(0.3) : type.backgroundColor)
+        .background(
+            Group {
+                if disabled {
+                    Color.gray.opacity(0.3)
+                } else {
+                    type.gradient
+                }
+            }
+        )
         .cornerRadius(type.cornerRadius)
+        .shadow(
+            color: disabled ? .clear : type.shadowColor,
+            radius: 8,
+            x: 0,
+            y: 4
+        )
         .disabled(disabled || isLoading)
     }
 }
@@ -50,10 +64,34 @@ enum ButtonType {
     
     var backgroundColor: Color {
         switch self {
-        case .primary: return Color("BittersweetOrange")
-        case .secondary: return Color("SoftBlue")
-        case .small: return Color("BittersweetOrange")
-        case .link: return Color("SoftBlue")
+        case .primary:
+            return .clear
+        case .secondary:
+            return Color("SoftBlue")
+        case .small:
+            return .clear
+        case .link:
+            return Color("SoftBlue")
+        }
+    }
+    
+    var gradient: LinearGradient {
+        switch self {
+        case .primary, .small:
+            return LinearGradient(
+                colors: [
+                    Color("BittersweetOrange"),
+                    Color("FantasyPink")
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .secondary, .link:
+            return LinearGradient(
+                colors: [Color("SoftBlue")],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
         }
     }
     
@@ -102,6 +140,15 @@ enum ButtonType {
         switch self {
         case .primary, .small: return .white
         case .secondary, .link: return .blue
+        }
+    }
+    
+    var shadowColor: Color {
+        switch self {
+        case .primary, .small:
+            return Color("BittersweetOrange").opacity(0.3)
+        case .secondary, .link:
+            return Color("SoftBlue").opacity(0.3)
         }
     }
 }
