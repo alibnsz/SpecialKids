@@ -16,96 +16,46 @@ struct HomeworkSheet: View {
     }
     
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 24) {
-                StudentInfoSection(student: student)
-                
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("Ödev Detayları")
-                        .font(.custom("Outfit-Bold", size: 20))
-                        .foregroundColor(Color("OilBlack"))
-                    
-                    // Başlık
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Başlık")
-                            .font(.custom("Outfit-Medium", size: 14))
-                            .foregroundColor(.gray)
-                        CustomTextField(
-                            placeholder: "Ödev başlığını girin",
-                            text: $homeworkTitle
-                        )
-                    }
-                    
-                    // Açıklama
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Açıklama")
-                            .font(.custom("Outfit-Medium", size: 14))
-                            .foregroundColor(.gray)
-                        TextEditor(text: $homeworkDescription)
-                            .font(.custom("Outfit-Regular", size: 16))
-                            .frame(height: 120)
-                            .padding(12)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(10)
-                            .overlay(
-                                Group {
-                                    if homeworkDescription.isEmpty {
-                                        Text("Ödev açıklamasını girin")
-                                            .font(.custom("Outfit-Regular", size: 16))
-                                            .foregroundColor(.gray)
-                                            .padding(.leading, 16)
-                                            .padding(.top, 16)
-                                    }
-                                },
-                                alignment: .topLeading
-                            )
-                    }
-                    
-                    // Teslim Tarihi
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Teslim Tarihi")
-                            .font(.custom("Outfit-Medium", size: 14))
-                            .foregroundColor(.gray)
-                        DatePicker(
-                            "",
-                            selection: $dueDate,
-                            displayedComponents: [.date]
-                        )
-                        .datePickerStyle(.compact)
-                        .font(.custom("Outfit-Regular", size: 16))
-                        .accentColor(Color("OilBlack"))
-                    }
-                    
-                    CustomButtonView(
-                        title: "Ödev Gönder",
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    StudentProfileCard(student: student)
+                    HomeworkDetailsCard(
+                        title: $homeworkTitle,
+                        description: $homeworkDescription,
+                        dueDate: $dueDate
+                    )
+                    SubmitButton(
                         isLoading: isLoading,
-                        disabled: !isFormValid,
-                        type: .primary
-                    ) {
-                        sendHomework()
+                        isFormValid: isFormValid,
+                        action: sendHomework
+                    )
+                }
+                .padding(20)
+            }
+            .background(Color("SoftBlue").opacity(0.05))
+            .navigationTitle("Yeni Ödev")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    CloseButton(dismiss: dismiss)
+                }
+            }
+            .alert("Bilgi", isPresented: $showAlert) {
+                Button("Tamam", role: .cancel) {
+                    if !alertMessage.contains("hata") {
+                        dismiss()
                     }
-                    .padding(.top, 8)
                 }
+            } message: {
+                Text(alertMessage)
             }
-            .padding(20)
-        }
-        .navigationTitle("Ödev Ver")
-        .navigationBarTitleDisplayMode(.inline)
-        .alert("Bilgi", isPresented: $showAlert) {
-            Button("Tamam", role: .cancel) {
-                if !alertMessage.contains("hata") {
-                    dismiss()
-                }
-            }
-        } message: {
-            Text(alertMessage)
         }
     }
     
     private func sendHomework() {
         isLoading = true
         
-        // Önce öğrencinin velisini bul
         FirebaseManager.shared.fetchParentForStudent(studentId: student.studentId) { parentId in
             guard let parentId = parentId else {
                 self.isLoading = false
@@ -113,8 +63,6 @@ struct HomeworkSheet: View {
                 self.showAlert = true
                 return
             }
-            
-            print("Found parent ID: \(parentId) for student: \(student.studentId)") // Debug log
             
             let homework = Homework(
                 id: UUID().uuidString,
@@ -127,18 +75,16 @@ struct HomeworkSheet: View {
                 assignedDate: Date()
             )
             
-            // Ödevi kaydet ve bildirim oluştur
             FirebaseManager.shared.assignHomework(homework: homework) { error in
                 self.isLoading = false
                 
                 if let error = error {
                     self.alertMessage = "Ödev gönderilirken hata oluştu: \(error.localizedDescription)"
                 } else {
-                    // Ödev başarıyla gönderildi, bildirim oluştur
                     Task {
                         await FirebaseManager.shared.sendHomeworkNotification(
                             homework: homework,
-                            parentId: parentId // Velinin ID'sini kullan
+                            parentId: parentId
                         )
                     }
                     self.alertMessage = "Ödev başarıyla gönderildi!"
@@ -150,121 +96,198 @@ struct HomeworkSheet: View {
     }
 }
 
-// MARK: - Supporting Views
-struct StudentInfoSection: View {
+// MARK: - Student Profile Card
+struct StudentProfileCard: View {
     let student: Student
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Öğrenci Bilgileri")
-                .font(.custom("Outfit-Bold", size: 20))
-                .foregroundColor(Color("OilBlack"))
-            
-            HStack(spacing: 12) {
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(Color("OilBlack"))
-                Text(student.name)
-                    .font(.custom("Outfit-Medium", size: 16))
-                    .foregroundColor(Color("OilBlack"))
-            }
-            
-            HStack(spacing: 12) {
-                Image(systemName: "number.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(Color("OilBlack"))
-                Text("ID: \(student.studentId)")
-                    .font(.custom("Outfit-Regular", size: 14))
-                    .foregroundColor(Color.gray.opacity(0.8))
-            }
+        VStack(spacing: 16) {
+            ProfileImage()
+            StudentInfo(student: student)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(12)
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.white)
+                .shadow(color: Color.black.opacity(0.05), radius: 15)
+        )
     }
 }
 
-struct HomeworkFormSection: View {
-    @Binding var homeworkTitle: String
-    @Binding var homeworkDescription: String
-    @Binding var dueDate: Date
-    let isLoading: Bool
-    let isFormValid: Bool
-    let onSubmit: () -> Void
+struct ProfileImage: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color("BittersweetOrange").opacity(0.1),
+                            Color("FantasyPink").opacity(0.1)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 80, height: 80)
+            
+            Image(systemName: "person.circle.fill")
+                .font(.system(size: 40))
+                .foregroundColor(Color("BittersweetOrange"))
+        }
+    }
+}
+
+struct StudentInfo: View {
+    let student: Student
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(spacing: 8) {
+            Text(student.name)
+                .font(.custom("Outfit-SemiBold", size: 20))
+                .foregroundColor(Color("NeutralBlack"))
+            
+            Text("Öğrenci ID: \(student.studentId)")
+                .font(.custom("Outfit-Regular", size: 14))
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+// MARK: - Homework Details Card
+struct HomeworkDetailsCard: View {
+    @Binding var title: String
+    @Binding var description: String
+    @Binding var dueDate: Date
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
             Text("Ödev Detayları")
                 .font(.custom("Outfit-Bold", size: 20))
-                .foregroundColor(Color("OilBlack"))
+                .foregroundColor(Color("NeutralBlack"))
             
-            FormField(title: "Başlık") {
-                CustomTextField(
-                    placeholder: "Ödev başlığını girin",
-                    text: $homeworkTitle
+            TitleField(title: $title)
+            DescriptionField(description: $description)
+            DueDateField(dueDate: $dueDate)
+        }
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.white)
+                .shadow(color: Color.black.opacity(0.05), radius: 15)
+        )
+    }
+}
+
+struct TitleField: View {
+    @Binding var title: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Başlık")
+                .font(.custom("Outfit-Medium", size: 14))
+                .foregroundColor(.secondary)
+            
+            CustomTextField(
+                placeholder: "Ödev başlığını girin",
+                text: $title
+            )
+        }
+    }
+}
+
+struct DescriptionField: View {
+    @Binding var description: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Açıklama")
+                .font(.custom("Outfit-Medium", size: 14))
+                .foregroundColor(.secondary)
+            
+            TextEditor(text: $description)
+                .font(.custom("Outfit-Regular", size: 16))
+                .frame(height: 120)
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color("SoftBlue").opacity(0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color("SoftBlue").opacity(0.1), lineWidth: 1)
+                        )
                 )
-            }
-            
-            FormField(title: "Açıklama") {
-                CustomTextField(
-                    placeholder: "Ödev açıklamasını girin",
-                    text: $homeworkDescription,
-                    isMultiline: true
+                .overlay(
+                    Group {
+                        if description.isEmpty {
+                            Text("Ödev açıklamasını detaylı bir şekilde yazın...")
+                                .font(.custom("Outfit-Regular", size: 16))
+                                .foregroundColor(.gray.opacity(0.5))
+                                .padding(.leading, 16)
+                                .padding(.top, 20)
+                        }
+                    },
+                    alignment: .topLeading
                 )
-                .frame(height: 100)
-            }
+        }
+    }
+}
+
+struct DueDateField: View {
+    @Binding var dueDate: Date
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Teslim Tarihi")
+                .font(.custom("Outfit-Medium", size: 14))
+                .foregroundColor(.secondary)
             
-            FormField(title: "Teslim Tarihi") {
+            HStack {
+                Image(systemName: "calendar")
+                    .foregroundColor(Color("BittersweetOrange"))
+                
                 DatePicker(
                     "",
                     selection: $dueDate,
                     displayedComponents: [.date]
                 )
                 .datePickerStyle(.compact)
-                .font(.custom("Outfit-Regular", size: 16))
-                .accentColor(Color("OilBlack"))
+                .accentColor(Color("BittersweetOrange"))
             }
-            
-            CustomButtonView(
-                title: "Ödev Gönder",
-                isLoading: isLoading,
-                disabled: !isFormValid,
-                type: .primary,
-                action: onSubmit
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color("SoftBlue").opacity(0.05))
             )
-            .padding(.top, 8)
         }
     }
 }
 
-struct FormField<Content: View>: View {
-    let title: String
-    let content: Content
-    
-    init(title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.content = content()
-    }
+// MARK: - Supporting Views
+struct SubmitButton: View {
+    let isLoading: Bool
+    let isFormValid: Bool
+    let action: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.custom("Outfit-Medium", size: 14))
-                .foregroundColor(Color.gray.opacity(0.8))
-            content
-        }
+        CustomButtonView(
+            title: "Ödev Gönder",
+            isLoading: isLoading,
+            disabled: !isFormValid,
+            type: .primary,
+            action: action
+        )
+        .padding(.top, 8)
     }
 }
 
 struct CloseButton: View {
-    let action: DismissAction
+    let dismiss: DismissAction
     
     var body: some View {
-        Button(action: { action() }) {
-            Image(systemName: "xmark.circle.fill")
-                .font(.system(size: 24))
-                .foregroundColor(Color("OilBlack"))
+        Button("Kapat") {
+            dismiss()
         }
+        .font(.custom("Outfit-Medium", size: 16))
+        .foregroundColor(Color("BittersweetOrange"))
     }
 }
