@@ -2,298 +2,192 @@ import SwiftUI
 
 struct ClassView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
-    @State private var showAddStudentSheet = false
-    @State private var selectedClass: SchoolClass?
-    @State private var showClassManagement = false
-    @State private var studentsInClass: [Student] = []
-    @State private var teacherName: String = ""
-    @State private var selectedStudent: Student?
-    @State private var showHomeworkSheet = false
-    @State private var isLoading = true
-    @State private var showNotifications = false
-    @State private var notifications: [Notification] = []
-    
-    private let horizontalPadding: CGFloat = 20
+    @State private var showAddClassSheet = false
+    @State private var searchText = ""
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Üst başlık - Hoşgeldin mesajı
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Hoşgeldin,")
-                                .font(.custom("Outfit-Regular", size: 16))
-                                .foregroundColor(.secondary)
-                            Text(teacherName)
-                                .font(.custom("Outfit-SemiBold", size: 28))
-                                .foregroundColor(Color("NeutralBlack"))
-                        }
-                        
-                        Spacer()
-                        
-                        // Bildirim ve sınıf yönetimi ikonları
-                        HStack(spacing: 12) {
-                            Button(action: { showClassManagement = true }) {
-                                Image(systemName: "rectangle.stack.fill")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(Color("BittersweetOrange"))
-                                    .frame(width: 40, height: 40)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(.white)
-                                            .shadow(color: Color.black.opacity(0.05), radius: 15)
-                                    )
-                            }
-                            
-                            NavigationLink {
-                                NotificationsView(notifications: notifications)
-                                    .navigationBarTitleDisplayMode(.inline)
-                            } label: {
-                                NotificationButtonView(count: notifications.count)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, horizontalPadding)
-                    .padding(.top, 16)
-                    
-                    if selectedClass == nil {
-                        // Sınıf seçilmediğinde gösterilecek view
-                        VStack(spacing: 24) {
-                            // İllüstrasyon
-                            Image(systemName: "rectangle.stack.person.crop.fill")
-                                .font(.system(size: 80))
-                                .foregroundColor(Color("BittersweetOrange"))
-                                .padding(.bottom, 16)
-                            
-                            // Başlık ve açıklama
-                            VStack(spacing: 8) {
-                                Text("Henüz Bir Sınıfınız Yok")
-                                    .font(.custom("Outfit-SemiBold", size: 24))
+                    // MARK: - Header Section
+                    VStack(spacing: 16) {
+                        // Üst başlık
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Sınıflarım")
+                                    .font(.custom("Outfit-Bold", size: 28))
                                     .foregroundColor(Color("NeutralBlack"))
                                 
-                                Text("Öğrencilerinizi yönetmek için bir sınıf oluşturun veya seçin")
+                                Text("Öğrencilerinizi yönetin")
                                     .font(.custom("Outfit-Regular", size: 16))
                                     .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 32)
                             }
-                            
-                            // Sınıf oluşturma butonu
-                            CustomButtonView(
-                                title: "Sınıf Seç",
-                                type: .primary
-                            ) {
-                                showClassManagement = true
-                            }
-                            .frame(maxWidth: 200)
+                            Spacer()
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.vertical, 40)
-                        .background(
-                            RoundedRectangle(cornerRadius: 24)
-                                .fill(Color.white)
-                                .shadow(color: Color.black.opacity(0.05), radius: 15)
-                        )
-                        .padding(.horizontal, horizontalPadding)
-                    } else {
-                        // Sınıf seçildiğinde gösterilecek içerik
-                        VStack(spacing: 24) {
-                            // Sınıf bilgi kartı
-                            ClassInfoCard(
-                                className: selectedClass?.name ?? "",
-                                studentCount: studentsInClass.count
-                            )
-                            .padding(.horizontal, horizontalPadding)
-                            
-                            // Öğrenci ekleme butonu
+                        .padding(.horizontal)
+                        
+                        // Arama ve Ekleme Bölümü
+                        HStack(spacing: 16) {
+                            // Arama alanı
                             HStack {
-                                Button(action: { showAddStudentSheet = true }) {
-                                    HStack {
-                                        Image(systemName: "person.badge.plus")
-                                            .font(.system(size: 18))
-                                        Text("Öğrenci Ekle")
-                                            .font(.custom("Outfit-Medium", size: 16))
-                                    }
+                                Image(systemName: "magnifyingglass")
                                     .foregroundColor(Color("BittersweetOrange"))
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal, 20)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color("BittersweetOrange"), lineWidth: 1)
-                                    )
-                                }
-                                .padding(.leading, horizontalPadding)
-                                Spacer()
+                                    .font(.system(size: 20))
+                                
+                                TextField("Sınıf ara...", text: $searchText)
+                                    .font(.custom("Outfit-Regular", size: 16))
                             }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.white)
+                                    .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+                            )
                             
-                            // Öğrenci listesi
-                            LazyVGrid(
-                                columns: [
-                                    GridItem(.flexible()),
-                                    GridItem(.flexible()),
-                                    GridItem(.flexible())
-                                ],
-                                spacing: 20
-                            ) {
-                                ForEach(studentsInClass) { student in
-                                    StudentCard(student: student) {
-                                        selectedStudent = student
-                                        showHomeworkSheet = true
-                                    }
-                                }
+                            // Ekleme butonu
+                            Button {
+                                showAddClassSheet = true
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 46, height: 46)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [
+                                                Color("BittersweetOrange"),
+                                                Color("FantasyPink")
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .shadow(
+                                        color: Color("BittersweetOrange").opacity(0.3),
+                                        radius: 8,
+                                        x: 0,
+                                        y: 4
+                                    )
                             }
-                            .padding(.horizontal, horizontalPadding)
                         }
+                        .padding(.horizontal)
+                    }
+                    
+                    // MARK: - Classes Grid
+                    if firebaseManager.classes.isEmpty {
+                        EmptyClassesView()
+                    } else {
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: 16) {
+                            ForEach(filteredClasses) { schoolClass in
+                                ClassCard(schoolClass: schoolClass)
+                            }
+                        }
+                        .padding(.horizontal)
+                        .animation(.spring(), value: firebaseManager.classes)
                     }
                 }
-                .padding(.bottom, 20)
+                .padding(.top, 16)
             }
             .background(Color.gray.opacity(0.05))
-            .navigationBarHidden(true)
-        }
-        .sheet(isPresented: $showAddStudentSheet) {
-            if let selectedClass = selectedClass {
-                AddStudentSheet(
-                    schoolClass: selectedClass,
-                    onStudentAdded: {
-                        fetchStudentsForClass(classId: selectedClass.id)
-                    }
-                )
-            }
-        }
-        .sheet(isPresented: $showClassManagement) {
-            ClassManagementView(selectedClass: $selectedClass)
-        }
-        .sheet(isPresented: $showHomeworkSheet) {
-            if let student = selectedStudent {
-                HomeworkSheet(student: student)
-            }
-        }
-        .onAppear {
-            fetchInitialData()
-            fetchNotifications()
-        }
-    }
-    
-    private func fetchInitialData() {
-        isLoading = true
-        
-        guard let teacherId = firebaseManager.auth.currentUser?.uid else {
-            isLoading = false
-            return
-        }
-        
-        // Öğretmen adını al
-        firebaseManager.fetchTeacherName { name in
-            self.teacherName = name
-        }
-        
-        // Sınıfları al
-        firebaseManager.fetchClassesForTeacher(teacherId: teacherId) { classes, error in
-            if let classes = classes, let firstClass = classes.first {
-                selectedClass = firstClass
-                fetchStudentsForClass(classId: firstClass.id)
-            }
-            isLoading = false
-        }
-    }
-    
-    private func fetchStudentsForClass(classId: String) {
-        print("Öğrenciler getiriliyor...")
-        firebaseManager.fetchStudentsForClass(classId: classId) { students, error in
-            if let error = error {
-                print("Öğrenci getirme hatası: \(error.localizedDescription)")
-                return
-            }
-            
-            if let students = students {
-                print("Bulunan öğrenci sayısı: \(students.count)")
-                DispatchQueue.main.async {
-                    self.studentsInClass = students
-                }
+            .sheet(isPresented: $showAddClassSheet) {
+                AddClassSheet()
             }
         }
     }
     
-    private func fetchNotifications() {
-        guard let teacherId = firebaseManager.auth.currentUser?.uid else { return }
-        
-        Task {
-            do {
-                let fetchedNotifications = try await firebaseManager.fetchNotifications(for: teacherId)
-                DispatchQueue.main.async {
-                    self.notifications = fetchedNotifications
-                }
-            } catch {
-                print("Error fetching notifications: \(error)")
-            }
+    private var filteredClasses: [SchoolClass] {
+        if searchText.isEmpty {
+            return firebaseManager.classes
         }
+        return firebaseManager.classes.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 }
 
-// Yardımcı komponentler
-struct ClassInfoCard: View {
-    let className: String
-    let studentCount: Int
-    
+// MARK: - Empty State View
+struct EmptyClassesView: View {
     var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(className)
-                        .font(.custom("Outfit-SemiBold", size: 24))
-                        .foregroundColor(Color("NeutralBlack"))
-                    
-                    Text("\(studentCount) Öğrenci")
-                        .font(.custom("Outfit-Regular", size: 16))
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-            }
+        VStack(spacing: 20) {
+            Image(systemName: "rectangle.stack.person.crop.fill")
+                .font(.system(size: 60))
+                .foregroundColor(Color("BittersweetOrange").opacity(0.3))
+            
+            Text("Henüz sınıf eklenmemiş")
+                .font(.custom("Outfit-SemiBold", size: 20))
+                .foregroundColor(Color("NeutralBlack"))
+            
+            Text("İlk sınıfınızı eklemek için + butonuna tıklayın")
+                .font(.custom("Outfit-Regular", size: 16))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
         }
-        .padding(20)
+        .padding(40)
+        .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.white)
                 .shadow(color: Color.black.opacity(0.05), radius: 15)
         )
+        .padding()
     }
 }
 
-struct StudentCard: View {
-    let student: Student
-    let action: () -> Void
+// MARK: - Class Card
+struct ClassCard: View {
+    let schoolClass: SchoolClass
     
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 12) {
-                Image("girl")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 70, height: 70)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white, lineWidth: 2)
-                    )
-                    .shadow(color: Color.black.opacity(0.1), radius: 5)
+        NavigationLink(destination: ClassDetailView(schoolClass: schoolClass)) {
+            VStack(spacing: 16) {
+                // Sınıf ikonu
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color("BittersweetOrange").opacity(0.1),
+                                    Color("FantasyPink").opacity(0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 60, height: 60)
+                    
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(Color("BittersweetOrange"))
+                }
                 
                 VStack(spacing: 4) {
-                    Text(student.name)
-                        .font(.custom("Outfit-Medium", size: 16))
+                    Text(schoolClass.name)
+                        .font(.custom("Outfit-SemiBold", size: 16))
                         .foregroundColor(Color("NeutralBlack"))
                     
-                    Text(student.studentId)
-                        .font(.custom("Outfit-Regular", size: 12))
+                    Text("\(schoolClass.students.count) Öğrenci")
+                        .font(.custom("Outfit-Regular", size: 14))
                         .foregroundColor(.secondary)
                 }
+                
+                // İlerleme çubuğu
+                ProgressView(value: Double(schoolClass.students.count), total: 30)
+                    .progressViewStyle(LinearProgressViewStyle(tint: Color("BittersweetOrange")))
+                    .frame(height: 4)
             }
-            .padding(12)
+            .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white)
-                    .shadow(color: Color.black.opacity(0.05), radius: 10)
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.white)
+                    .shadow(
+                        color: Color("BittersweetOrange").opacity(0.05),
+                        radius: 15,
+                        x: 0,
+                        y: 5
+                    )
             )
         }
     }

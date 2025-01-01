@@ -8,7 +8,7 @@
 import SwiftUI
 import FirebaseFirestore
 
-struct Student: Identifiable, Codable {
+struct Student: Identifiable, Codable, Equatable {
     let id: String
     var name: String
     var age: Int
@@ -23,5 +23,14 @@ struct Student: Identifiable, Codable {
         self.studentId = studentId
         self.birthDate = birthDate
         self.isPremium = isPremium
+    }
+    
+    static func == (lhs: Student, rhs: Student) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.name == rhs.name &&
+        lhs.age == rhs.age &&
+        lhs.studentId == rhs.studentId &&
+        lhs.birthDate == rhs.birthDate &&
+        lhs.isPremium == rhs.isPremium
     }
 }
