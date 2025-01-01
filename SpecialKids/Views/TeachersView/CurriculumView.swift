@@ -1,5 +1,4 @@
 import SwiftUI
-import FirebaseFirestore
 
 struct CurriculumView: View {
     @StateObject private var viewModel = CurriculumViewModel()
@@ -9,52 +8,90 @@ struct CurriculumView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 20) {
-                    // Üst kısım - Arama ve Ekleme
-                    HStack {
-                        // Arama alanı
+                VStack(spacing: 24) {
+                    // MARK: - Header Section
+                    VStack(spacing: 16) {
+                        // Üst başlık
                         HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(Color("BittersweetOrange"))
-                            
-                            TextField("Müfredat ara...", text: $searchText)
-                                .font(.custom("Outfit-Regular", size: 16))
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Müfredat Notları")
+                                    .font(.custom("Outfit-Bold", size: 28))
+                                    .foregroundColor(Color("NeutralBlack"))
+                                
+                                Text("Öğrencileriniz için notlar ve planlar")
+                                    .font(.custom("Outfit-Regular", size: 16))
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
                         }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(.white)
-                                .shadow(color: Color.black.opacity(0.05), radius: 5)
-                        )
+                        .padding(.horizontal)
                         
-                        // Ekleme butonu
-                        Button {
-                            showAddNoteSheet = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(width: 50, height: 50)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color("BittersweetOrange"))
-                                )
+                        // Arama ve Ekleme Bölümü
+                        HStack(spacing: 16) {
+                            // Arama alanı
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(Color("BittersweetOrange"))
+                                    .font(.system(size: 20))
+                                
+                                TextField("Müfredat ara...", text: $searchText)
+                                    .font(.custom("Outfit-Regular", size: 16))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.white)
+                                    .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+                            )
+                            
+                            // Ekleme butonu
+                            Button {
+                                showAddNoteSheet = true
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 46, height: 46)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [
+                                                Color("BittersweetOrange"),
+                                                Color("FantasyPink")
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .shadow(
+                                        color: Color("BittersweetOrange").opacity(0.3),
+                                        radius: 8,
+                                        x: 0,
+                                        y: 4
+                                    )
+                            }
                         }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                     
-                    // Müfredat notları listesi
-                    LazyVStack(spacing: 16) {
-                        ForEach(viewModel.filteredNotes(searchText)) { note in
-                            CurriculumNoteCard(note: note)
+                    // MARK: - Content Section
+                    if viewModel.notes.isEmpty {
+                        CurriculumEmptyStateView()
+                    } else {
+                        LazyVStack(spacing: 20) {
+                            ForEach(viewModel.filteredNotes(searchText)) { note in
+                                CurriculumNoteCard(note: note)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
                         }
+                        .padding(.horizontal)
+                        .animation(.spring(), value: viewModel.notes.map { $0.id })
                     }
-                    .padding(.horizontal)
                 }
-                .padding(.top)
+                .padding(.top, 16)
             }
-            .background(Color("SoftBlue").opacity(0.05))
-            .navigationTitle("Müfredat Notları")
+            .background(Color.gray.opacity(0.05))
             .sheet(isPresented: $showAddNoteSheet) {
                 AddCurriculumNoteSheet(viewModel: viewModel)
             }
@@ -65,72 +102,40 @@ struct CurriculumView: View {
     }
 }
 
-// MARK: - ViewModel
-class CurriculumViewModel: ObservableObject {
-    @Published var notes: [CurriculumNote] = []
-    private let db = Firestore.firestore()
-    
-    func fetchNotes() {
-        guard let teacherId = FirebaseManager.shared.auth.currentUser?.uid else { return }
-        
-        db.collection("curriculum")
-            .whereField("teacherId", isEqualTo: teacherId)
-            .order(by: "date", descending: true)
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let documents = snapshot?.documents else {
-                    print("Error fetching notes: \(error?.localizedDescription ?? "")")
-                    return
-                }
-                
-                self?.notes = documents.compactMap { document -> CurriculumNote? in
-                    let data = document.data()
-                    return CurriculumNote(
-                        id: document.documentID,
-                        title: data["title"] as? String ?? "",
-                        content: data["content"] as? String ?? "",
-                        date: (data["date"] as? Timestamp)?.dateValue() ?? Date(),
-                        tags: data["tags"] as? [String] ?? []
-                    )
-                }
-            }
-    }
-    
-    func addNote(title: String, content: String, tags: [String]) {
-        guard let teacherId = FirebaseManager.shared.auth.currentUser?.uid else { return }
-        
-        let noteData: [String: Any] = [
-            "teacherId": teacherId,
-            "title": title,
-            "content": content,
-            "date": Timestamp(date: Date()),
-            "tags": tags
-        ]
-        
-        db.collection("curriculum").addDocument(data: noteData) { error in
-            if let error = error {
-                print("Error adding note: \(error.localizedDescription)")
-            }
+// MARK: - Empty State View
+struct CurriculumEmptyStateView: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "doc.text.fill")
+                .font(.system(size: 60))
+                .foregroundColor(Color("BittersweetOrange").opacity(0.3))
+            
+            Text("Henüz not eklenmemiş")
+                .font(.custom("Outfit-SemiBold", size: 20))
+                .foregroundColor(Color("NeutralBlack"))
+            
+            Text("İlk müfredat notunuzu eklemek için + butonuna tıklayın")
+                .font(.custom("Outfit-Regular", size: 16))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
         }
-    }
-    
-    func filteredNotes(_ searchText: String) -> [CurriculumNote] {
-        if searchText.isEmpty {
-            return notes
-        }
-        return notes.filter { note in
-            note.title.localizedCaseInsensitiveContains(searchText) ||
-            note.content.localizedCaseInsensitiveContains(searchText) ||
-            note.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
-        }
+        .padding(40)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.white)
+                .shadow(color: Color.black.opacity(0.05), radius: 15)
+        )
+        .padding()
     }
 }
 
-// MARK: - Müfredat Not Kartı
+// MARK: - Not Kartı Tasarımı
 struct CurriculumNoteCard: View {
     let note: CurriculumNote
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             // Başlık ve tarih
             HStack {
                 Text(note.title)
@@ -139,9 +144,19 @@ struct CurriculumNoteCard: View {
                 
                 Spacer()
                 
-                Text(formatDate(note.date))
-                    .font(.custom("Outfit-Regular", size: 14))
-                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 14))
+                    Text(formatDate(note.date))
+                        .font(.custom("Outfit-Regular", size: 14))
+                }
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(Color.gray.opacity(0.1))
+                )
             }
             
             // İçerik
@@ -149,132 +164,45 @@ struct CurriculumNoteCard: View {
                 .font(.custom("Outfit-Regular", size: 16))
                 .foregroundColor(Color("NeutralBlack").opacity(0.8))
                 .lineLimit(3)
+                .padding(.vertical, 8)
             
             // Etiketler
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(note.tags, id: \.self) { tag in
-                        Text(tag)
-                            .font(.custom("Outfit-Medium", size: 12))
-                            .foregroundColor(Color("BittersweetOrange"))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color("BittersweetOrange").opacity(0.1))
-                            )
+                        TagView(tag: tag) {}
                     }
                 }
             }
+            
+            // Alt bilgi çizgisi
+            HStack {
+                Image(systemName: "text.justify")
+                    .foregroundColor(.secondary)
+                Text("\(note.content.split(separator: " ").count) kelime")
+                    .font(.custom("Outfit-Regular", size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.top, 8)
         }
-        .padding()
+        .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 20)
                 .fill(.white)
-                .shadow(color: Color.black.opacity(0.05), radius: 10)
+                .shadow(
+                    color: Color("BittersweetOrange").opacity(0.05),
+                    radius: 15,
+                    x: 0,
+                    y: 5
+                )
         )
     }
     
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "dd MMM yyyy"
+        formatter.dateFormat = "dd MMM"
         formatter.locale = Locale(identifier: "tr_TR")
         return formatter.string(from: date)
-    }
-}
-
-// MARK: - Not Ekleme Sheet
-struct AddCurriculumNoteSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @ObservedObject var viewModel: CurriculumViewModel
-    @State private var title = ""
-    @State private var content = ""
-    @State private var tags: [String] = []
-    @State private var newTag = ""
-    
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Başlık
-                    CustomTextField(
-                        placeholder: "Başlık",
-                        text: $title
-                    )
-                    
-                    // İçerik
-                    TextEditor(text: $content)
-                        .frame(height: 200)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.gray.opacity(0.1))
-                        )
-                    
-                    // Etiket ekleme
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Etiketler")
-                            .font(.custom("Outfit-Medium", size: 16))
-                        
-                        HStack {
-                            CustomTextField(
-                                placeholder: "Yeni etiket",
-                                text: $newTag
-                            )
-                            
-                            Button {
-                                if !newTag.isEmpty {
-                                    tags.append(newTag)
-                                    newTag = ""
-                                }
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundColor(Color("BittersweetOrange"))
-                                    .font(.system(size: 24))
-                            }
-                        }
-                        
-                        // Eklenen etiketler
-                        FlowLayout(spacing: 8) {
-                            ForEach(tags, id: \.self) { tag in
-                                TagView(tag: tag) {
-                                    tags.removeAll { $0 == tag }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Kaydet butonu
-                    CustomButtonView(
-                        title: "Kaydet",
-                        disabled: title.isEmpty || content.isEmpty,
-                        type: .primary
-                    ) {
-                        saveNote()
-                    }
-                }
-                .padding()
-            }
-            .navigationTitle("Yeni Not")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Kapat") {
-                        dismiss()
-                    }
-                    .foregroundColor(Color("BittersweetOrange"))
-                }
-            }
-        }
-    }
-    
-    private func saveNote() {
-        viewModel.addNote(
-            title: title,
-            content: content,
-            tags: tags
-        )
-        dismiss()
     }
 }
 
@@ -354,12 +282,3 @@ struct FlowLayout: Layout {
         }
     }
 }
-
-// MARK: - Model
-struct CurriculumNote: Identifiable {
-    let id: String
-    let title: String
-    let content: String
-    let date: Date
-    let tags: [String]
-} 
