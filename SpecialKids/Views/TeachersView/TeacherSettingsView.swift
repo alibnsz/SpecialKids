@@ -1,214 +1,210 @@
 import SwiftUI
-import FirebaseFirestore
+import FirebaseAuth
 
 struct TeacherSettingsView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
-    @State private var teacherName: String = ""
-    @State private var teacherEmail: String = ""
-    @State private var teacherPhone: String = ""
-    @State private var showEditProfileSheet = false
     @State private var showLogoutAlert = false
-    @State private var showExpertiseSheet = false
-    
-    private let horizontalPadding: CGFloat = 20
+    @State private var showEditProfileSheet = false
+    @AppStorage("isDarkMode") private var isDarkMode = false
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Profil Kartı
-                ProfileCard(
-                    name: teacherName,
-                    email: teacherEmail,
-                    phone: teacherPhone
-                )
-                .padding(.horizontal, horizontalPadding)
-                
-                // Ayarlar Bölümleri
-                VStack(spacing: 8) {
-                    SettingsSection(title: "Hesap") {
-                        SettingsRow(icon: "person.fill", title: "Profili Düzenle", color: .blue) {
-                            showEditProfileSheet = true
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // MARK: - Profil Kartı
+                    VStack(spacing: 20) {
+                        // Profil Resmi
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color("BittersweetOrange").opacity(0.1),
+                                            Color("FantasyPink").opacity(0.1)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 100, height: 100)
+                            
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(Color("BittersweetOrange"))
                         }
                         
-                        SettingsRow(icon: "brain.head.profile", title: "Uzmanlık Alanları", color: .purple) {
-                            showExpertiseSheet = true
-                        }
-                    }
-                    
-                    SettingsSection(title: "Uygulama") {
-                        SettingsRow(icon: "bell.fill", title: "Bildirimler", color: .red) {
-                            // Bildirim ayarları
-                        }
-                        
-                        SettingsRow(icon: "lock.fill", title: "Gizlilik", color: .gray) {
-                            // Gizlilik ayarları
-                        }
-                    }
-                    
-                    SettingsSection(title: "Diğer") {
-                        SettingsRow(icon: "star.fill", title: "Uygulamayı Değerlendir", color: .orange) {
-                            // App Store'a yönlendir
+                        // Kullanıcı Bilgileri
+                        VStack(spacing: 8) {
+                            Text(firebaseManager.auth.currentUser?.email ?? "Öğretmen")
+                                .font(.custom("Outfit-SemiBold", size: 20))
+                                .foregroundColor(Color("NeutralBlack"))
+                            
+                            Text("Öğretmen")
+                                .font(.custom("Outfit-Regular", size: 16))
+                                .foregroundColor(.secondary)
                         }
                         
-                        SettingsRow(icon: "envelope.fill", title: "İletişim", color: .green) {
-                            // İletişim sayfası
-                        }
-                        
+                        // Düzenle Butonu
                         Button {
-                            showLogoutAlert = true
+                            showEditProfileSheet = true
                         } label: {
-                            HStack {
-                                Image(systemName: "rectangle.portrait.and.arrow.right")
-                                    .foregroundColor(.red)
-                                Text("Çıkış Yap")
-                                    .foregroundColor(.red)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.gray.opacity(0.5))
-                            }
-                            .padding()
-                            .background(Color.white)
+                            Text("Profili Düzenle")
+                                .font(.custom("Outfit-Medium", size: 14))
+                                .foregroundColor(Color("BittersweetOrange"))
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color("BittersweetOrange").opacity(0.1))
+                                )
                         }
                     }
+                    .padding(24)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(.white)
+                            .shadow(color: Color.black.opacity(0.05), radius: 15)
+                    )
+                    
+                    // MARK: - Ayarlar Listesi
+                    VStack(spacing: 8) {
+                        // Bildirimler
+                        TeacherSettingsRow(
+                            icon: "bell.fill",
+                            title: "Bildirimler",
+                            color: Color("FantasyPink")
+                        ) {
+                            NavigationLink {
+                                NotificationSettingsView()
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        
+                        // Mod
+                        TeacherSettingsRow(
+                            icon: "moon.fill",
+                            title: "Karanlık Mod",
+                            color: Color("SoftBlue")
+                        ) {
+                            Toggle("", isOn: $isDarkMode)
+                                .tint(Color("BittersweetOrange"))
+                        }
+                        
+                        // Dil
+                        TeacherSettingsRow(
+                            icon: "globe",
+                            title: "Dil",
+                            color: Color("BittersweetOrange")
+                        ) {
+                            Text("Türkçe")
+                                .font(.custom("Outfit-Regular", size: 14))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        // Yardım
+                        TeacherSettingsRow(
+                            icon: "questionmark.circle.fill",
+                            title: "Yardım",
+                            color: Color("FantasyPink")
+                        ) {
+                            NavigationLink {
+                                HelpView()
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(.white)
+                            .shadow(color: Color.black.opacity(0.05), radius: 15)
+                    )
+                    
+                    // MARK: - Çıkış Yap Butonu
+                    Button {
+                        showLogoutAlert = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                            Text("Çıkış Yap")
+                                .font(.custom("Outfit-Medium", size: 16))
+                        }
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.white)
+                                .shadow(color: Color.red.opacity(0.1), radius: 10)
+                        )
+                    }
                 }
-                .padding(.horizontal, horizontalPadding)
+                .padding(20)
             }
-            .padding(.top, 16)
-        }
-        .background(Color.gray.opacity(0.05))
-        .navigationTitle("Profil")
-        .navigationBarTitleDisplayMode(.large)
-        .onAppear {
-            fetchTeacherProfile()
-        }
-        .sheet(isPresented: $showEditProfileSheet) {
-            TeacherEditProfileSheet(
-                teacherName: $teacherName,
-                teacherEmail: $teacherEmail,
-                teacherPhone: $teacherPhone
-            )
-            .presentationDetents([.medium])
-        }
-        .sheet(isPresented: $showExpertiseSheet) {
-            TeacherExpertiseView(userId: firebaseManager.auth.currentUser?.uid ?? "")
-        }
-        .alert("Çıkış Yap", isPresented: $showLogoutAlert) {
-            Button("İptal", role: .cancel) {}
-            Button("Çıkış Yap", role: .destructive) {
-                signOut()
-            }
-        } message: {
-            Text("Hesabınızdan çıkış yapmak istediğinize emin misiniz?")
-        }
-    }
-    
-    private func fetchTeacherProfile() {
-        guard let userId = firebaseManager.auth.currentUser?.uid else { return }
-        
-        Firestore.firestore().collection("teachers")
-            .document(userId)
-            .getDocument { snapshot, error in
-                if let data = snapshot?.data() {
-                    self.teacherName = data["name"] as? String ?? ""
-                    self.teacherEmail = data["email"] as? String ?? ""
-                    self.teacherPhone = data["phone"] as? String ?? ""
+            .background(Color.gray.opacity(0.05))
+            .navigationTitle("Ayarlar")
+            .navigationBarTitleDisplayMode(.large)
+            .alert("Çıkış Yap", isPresented: $showLogoutAlert) {
+                Button("İptal", role: .cancel) {}
+                Button("Çıkış Yap", role: .destructive) {
+                    firebaseManager.signOut()
                 }
+            } message: {
+                Text("Hesabınızdan çıkış yapmak istediğinize emin misiniz?")
             }
-    }
-    
-    private func signOut() {
-        do {
-            try firebaseManager.auth.signOut()
-            UserDefaults.standard.removeObject(forKey: "userId")
-            UserDefaults.standard.removeObject(forKey: "userRole")
-        } catch {
-            print("Error signing out: \(error)")
         }
     }
 }
 
-// MARK: - Teacher Edit Profile Sheet
-struct TeacherEditProfileSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var teacherName: String
-    @Binding var teacherEmail: String
-    @Binding var teacherPhone: String
-    @State private var tempName: String = ""
-    @State private var tempEmail: String = ""
-    @State private var tempPhone: String = ""
+// MARK: - Settings Row
+struct TeacherSettingsRow<Content: View>: View {
+    let icon: String
+    let title: String
+    let color: Color
+    let content: () -> Content
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                VStack(spacing: 16) {
-                    CustomTextField(
-                        placeholder: "Ad Soyad",
-                        text: $tempName
-                    )
-                    
-                    CustomTextField(
-                        placeholder: "E-posta",
-                        text: $tempEmail
-                    )
-                    .disabled(true)
-                    
-                    CustomTextField(
-                        placeholder: "Telefon",
-                        text: $tempPhone
-                    )
-                    .keyboardType(.phonePad)
-                }
-                .padding(.horizontal)
+        HStack(spacing: 16) {
+            // İkon
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(color.opacity(0.1))
+                    .frame(width: 36, height: 36)
                 
-                CustomButtonView(
-                    title: "Kaydet",
-                    disabled: tempName.isEmpty,
-                    type: .primary
-                ) {
-                    updateProfile()
-                }
-                .padding(.horizontal)
-                
-                Spacer()
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(color)
             }
-            .padding(.top, 24)
-            .navigationTitle("Profili Düzenle")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Kapat") {
-                        dismiss()
-                    }
-                    .font(.custom("Outfit-Medium", size: 16))
-                    .foregroundColor(Color("BittersweetOrange"))
-                }
-            }
-            .background(.white)
-            .onAppear {
-                tempName = teacherName
-                tempEmail = teacherEmail
-                tempPhone = teacherPhone
-            }
+            
+            // Başlık
+            Text(title)
+                .font(.custom("Outfit-Medium", size: 16))
+                .foregroundColor(Color("NeutralBlack"))
+            
+            Spacer()
+            
+            // İçerik
+            content()
         }
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(16)
     }
-    
-    private func updateProfile() {
-        guard let userId = FirebaseManager.shared.auth.currentUser?.uid else { return }
-        
-        Firestore.firestore().collection("teachers")
-            .document(userId)
-            .updateData([
-                "name": tempName,
-                "email": tempEmail,
-                "phone": tempPhone
-            ]) { error in
-                if error == nil {
-                    teacherName = tempName
-                    teacherEmail = tempEmail
-                    teacherPhone = tempPhone
-                    dismiss()
-                }
-            }
-    }
+}
+
+#Preview {
+    TeacherSettingsView()
 }
 

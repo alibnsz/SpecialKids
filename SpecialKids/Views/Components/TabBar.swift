@@ -13,12 +13,12 @@ struct TeacherTabView: View {
         TabView {
             ClassView()
                 .tabItem {
-                    Label("Ana", systemImage: "house")
+                    Label("Ana", systemImage: "house.fill")
                 }
             
             CurriculumView()
                 .tabItem {
-                    Label("Görevler", systemImage: "note.text")
+                    Label("Görevler", systemImage: "pencil")
                 }
             
             TeacherSettingsView()
