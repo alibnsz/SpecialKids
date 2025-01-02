@@ -80,21 +80,6 @@ struct AnimatedImageView: View {
 }
 
 // MARK: - Content Section
-private struct ContentSection<Content: View>: View {
-    let content: Content
-    
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content
-        }
-        .padding(.horizontal, 24)
-        .background(Color.white)
-    }
-}
 
 // MARK: - Title Section
 private struct TitleSection: View {
@@ -166,7 +151,7 @@ private struct BulletPoint: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Circle()
-                .fill(Color("BittersweetOrange"))
+                .fill(Color("Plum"))
                 .frame(width: 6, height: 6)
                 .padding(.top, 8)
             
@@ -185,7 +170,7 @@ private struct TipRow: View {
     var body: some View {
         HStack(spacing: 16) {
             Image(systemName: "lightbulb.fill")
-                .foregroundColor(Color("BittersweetOrange"))
+                .foregroundColor(Color("Plum"))
                 .font(.system(size: 24))
             
             Text(tip)
