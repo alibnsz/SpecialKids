@@ -21,7 +21,7 @@ struct AddStudentToClassSheet: View {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color("BittersweetOrange").opacity(0.1),
+                                            Color("Plum").opacity(0.1),
                                             Color("FantasyPink").opacity(0.1)
                                         ],
                                         startPoint: .topLeading,
@@ -32,7 +32,7 @@ struct AddStudentToClassSheet: View {
                             
                             Image(systemName: "person.badge.plus")
                                 .font(.system(size: 32))
-                                .foregroundColor(Color("BittersweetOrange"))
+                                .foregroundColor(Color("Plum"))
                         }
                         
                         Text("Öğrenci Ekle")
@@ -77,7 +77,7 @@ struct AddStudentToClassSheet: View {
                 }
                 .padding(20)
             }
-            .background(Color("SoftBlue").opacity(0.05))
+            .background(Color.gray.opacity(0.05))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -85,7 +85,7 @@ struct AddStudentToClassSheet: View {
                         dismiss()
                     }
                     .font(.custom("Outfit-Medium", size: 16))
-                    .foregroundColor(Color("BittersweetOrange"))
+                    .foregroundColor(Color("Plum"))
                 }
             }
             .alert("Bilgi", isPresented: $showAlert) {

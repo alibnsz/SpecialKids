@@ -13,7 +13,7 @@ struct PINVerificationView: View {
             ZStack {
                 // Arka plan gradyanı
                 LinearGradient(
-                    colors: [Color("BittersweetOrange").opacity(0.1), Color("FantasyPink").opacity(0.2)],
+                    colors: [Color("Plum").opacity(0.1), Color("FantasyPink").opacity(0.2)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -24,7 +24,7 @@ struct PINVerificationView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "lock.shield.fill")
                             .font(.system(size: 40))
-                            .foregroundColor(Color("BittersweetOrange"))
+                            .foregroundColor(Color("Plum"))
                             .padding(.bottom, 8)
                         
                         Text("Ebeveyn Doğrulaması")
@@ -118,11 +118,11 @@ struct PINDisplayView: View {
                     .frame(width: 60, height: 60)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color("BittersweetOrange").opacity(0.1))
+                            .fill(Color("Plum").opacity(0.1))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color("BittersweetOrange"), lineWidth: 2)
+                            .stroke(Color("Plum"), lineWidth: 2)
                     )
             }
         }
@@ -180,11 +180,11 @@ struct PINDigitView: View {
             .frame(width: 45, height: 45)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color("BittersweetOrange").opacity(0.1))
+                    .fill(Color("Plum").opacity(0.1))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color("BittersweetOrange"), lineWidth: 2)
+                    .stroke(Color("Plum"), lineWidth: 2)
             )
     }
 } 

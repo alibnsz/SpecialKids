@@ -95,7 +95,7 @@ struct SignUpView: View {
                             }) {
                                 Text("okudum ve kabul ediyorum")
                                     .font(.custom("Outfit-Medium", size: 12))
-                                    .foregroundColor(Color("BittersweetOrange"))
+                                    .foregroundColor(Color("Plum"))
                             }
                         }
                     }
@@ -119,7 +119,7 @@ struct SignUpView: View {
                         Button(action: { dismiss() }) {
                             Text("Giriş Yap")
                                 .font(.custom("Outfit-Medium", size: 16))
-                                .foregroundColor(Color("BittersweetOrange"))
+                                .foregroundColor(Color("Plum"))
                         }
                     }
                 }
@@ -241,7 +241,7 @@ struct AnimatedRoleSelector: View {
                 // Seçili olan için kaydırılan mavi arka plan
                 GeometryReader { geometry in
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color("BittersweetOrange"))
+                        .fill(Color("Plum"))
                         .frame(width: geometry.size.width / 2)
                         .offset(x: selectedRole == "parent" ? 0 : geometry.size.width / 2)
                         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedRole)
@@ -281,7 +281,7 @@ struct CheckboxToggleStyle: ToggleStyle {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                    .foregroundColor(configuration.isOn ? Color("BittersweetOrange") : .gray)
+                    .foregroundColor(configuration.isOn ? Color("Plum") : .gray)
                     .font(.system(size: 20))
                     .frame(width: 20, height: 20)
                 

@@ -37,7 +37,7 @@ struct HelpView: View {
             }
             .padding(20)
         }
-        .background(Color("SoftBlue").opacity(0.05))
+        .background(Color.gray.opacity(0.05))
         .navigationTitle("Yardım")
         .navigationBarTitleDisplayMode(.large)
     }
@@ -54,12 +54,12 @@ struct HelpCard: View {
                 // İkon
                 ZStack {
                     Circle()
-                        .fill(Color("BittersweetOrange").opacity(0.1))
+                        .fill(Color("Plum").opacity(0.1))
                         .frame(width: 40, height: 40)
                     
                     Image(systemName: icon)
                         .font(.system(size: 20))
-                        .foregroundColor(Color("BittersweetOrange"))
+                        .foregroundColor(Color("Plum"))
                 }
                 
                 Text(title)

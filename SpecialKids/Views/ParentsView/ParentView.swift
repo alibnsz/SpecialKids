@@ -183,7 +183,7 @@ struct DailyProgressCard: View {
                         .stroke(
                             LinearGradient(
                                 colors: [
-                                    Color("BittersweetOrange"),
+                                    Color("Plum"),
                                     Color("FantasyPink")
                                 ],
                                 startPoint: .topLeading,
@@ -802,12 +802,12 @@ struct ChildCardView: View {
                 HStack(alignment: .center, spacing: 16) {
                     // Profil circle
                 Circle()
-                    .fill(Color("BittersweetOrange").opacity(0.2))
+                    .fill(Color("Plum").opacity(0.2))
                     .frame(width: 50, height: 50)
                     .overlay(
                         Text(child.name.prefix(1).uppercased())
                             .font(.custom("Outfit-SemiBold", size: 24))
-                            .foregroundColor(Color("BittersweetOrange"))
+                            .foregroundColor(Color("Plum"))
                     )
                 
                     VStack(alignment: .leading, spacing: 4) {
@@ -841,7 +841,7 @@ struct ChildCardView: View {
                             Circle()
                                 .trim(from: 0, to: min(stats.dailyPlayTime / dailyTarget, 1.0))
                                 .stroke(
-                                    stats.dailyPlayTime >= dailyTarget ? Color.green : Color("BittersweetOrange"),
+                                    stats.dailyPlayTime >= dailyTarget ? Color.green : Color("Plum"),
                                     style: StrokeStyle(lineWidth: 8, lineCap: .round)
                                 )
                                 .frame(width: 80, height: 80)
@@ -1055,7 +1055,7 @@ struct CircularProgressView: View {
                     .trim(from: 0, to: progress)
                     .stroke(
                         LinearGradient(
-                            colors: [Color("BittersweetOrange"), .orange],
+                            colors: [Color("Plum"), .orange],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -1067,7 +1067,7 @@ struct CircularProgressView: View {
                 VStack(spacing: 4) {
                     Text("\(Int(successRate * 100))%")
                         .font(.system(size: 40, weight: .bold))
-                        .foregroundColor(Color("BittersweetOrange"))
+                        .foregroundColor(Color("Plum"))
                     
                     Text("Başarı Oranı")
                         .font(.custom("Outfit-Medium", size: 16))
@@ -1183,7 +1183,7 @@ struct TimeAnalysisCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Image(systemName: "clock.fill")
-                        .foregroundColor(Color("BittersweetOrange"))
+                        .foregroundColor(Color("Plum"))
                     
                     Text("Son Oynanma:")
                         .font(.custom("Outfit-Medium", size: 16))
@@ -1266,7 +1266,7 @@ struct HeaderIconButton: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .medium))
-                .foregroundColor(Color("BittersweetOrange"))
+                .foregroundColor(Color("Plum"))
                 .frame(width: 40, height: 40)
                 .background(
                     RoundedRectangle(cornerRadius: 16)

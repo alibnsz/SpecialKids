@@ -29,7 +29,7 @@ struct ClassDetailView: View {
                     // Arama alanı
                     HStack {
                         Image(systemName: "magnifyingglass")
-                            .foregroundColor(Color("BittersweetOrange"))
+                            .foregroundColor(Color("Plum"))
                             .font(.system(size: 20))
                         
                         TextField("Öğrenci ara...", text: $searchText)
@@ -54,7 +54,7 @@ struct ClassDetailView: View {
                             .background(
                                 LinearGradient(
                                     colors: [
-                                        Color("BittersweetOrange"),
+                                        Color("Plum"),
                                         Color("FantasyPink")
                                     ],
                                     startPoint: .topLeading,
@@ -63,7 +63,7 @@ struct ClassDetailView: View {
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                             .shadow(
-                                color: Color("BittersweetOrange").opacity(0.3),
+                                color: Color("Plum").opacity(0.3),
                                 radius: 8,
                                 x: 0,
                                 y: 4
@@ -91,7 +91,7 @@ struct ClassDetailView: View {
             }
             .padding(.vertical)
         }
-        .background(Color("SoftBlue").opacity(0.05))
+        .background(Color.gray.opacity(0.05))
         .navigationTitle(schoolClass.name)
         .navigationBarTitleDisplayMode(.large)
         .sheet(isPresented: $showAddStudentSheet) {
@@ -121,12 +121,12 @@ struct EmptyStudentsView: View {
             // İkon
             ZStack {
                 Circle()
-                    .fill(Color("BittersweetOrange").opacity(0.1))
+                    .fill(Color("Plum").opacity(0.1))
                     .frame(width: 80, height: 80)
                 
                 Image(systemName: "person.3.fill")
                     .font(.system(size: 32))
-                    .foregroundColor(Color("BittersweetOrange"))
+                    .foregroundColor(Color("Plum"))
             }
             
             VStack(spacing: 8) {

@@ -56,13 +56,13 @@ struct AddAttachmentButton: View {
                 Text("Dosya Ekle")
                     .font(.custom("Outfit-Medium", size: 14))
             }
-            .foregroundColor(Color("BittersweetOrange"))
+            .foregroundColor(Color("Plum"))
             .padding()
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color("BittersweetOrange").opacity(0.3), lineWidth: 1)
-                    .background(Color("BittersweetOrange").opacity(0.05))
+                    .strokeBorder(Color("Plum").opacity(0.3), lineWidth: 1)
+                    .background(Color("Plum").opacity(0.05))
             )
         }
     }
@@ -78,14 +78,13 @@ struct TagInput: View {
             CustomTextField(
                 placeholder: "Yeni etiket",
                 text: $newTag
-
             )
             
             Button {
                 addTag()
             } label: {
                 Image(systemName: "plus.circle.fill")
-                    .foregroundColor(Color("BittersweetOrange"))
+                    .foregroundColor(Color("Plum"))
                     .font(.system(size: 24))
             }
         }
@@ -127,12 +126,12 @@ struct PreviewButton: View {
                 Text("Önizle")
             }
             .font(.custom("Outfit-Medium", size: 16))
-            .foregroundColor(Color("BittersweetOrange"))
+            .foregroundColor(Color("Plum"))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color("BittersweetOrange").opacity(0.1))
+                    .fill(Color("Plum").opacity(0.1))
             )
         }
     }

@@ -33,7 +33,7 @@ struct HomeworkSheet: View {
                 }
                 .padding(20)
             }
-            .background(Color("SoftBlue").opacity(0.05))
+            .background(Color.gray.opacity(0.05))
             .navigationTitle("Yeni Ödev")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -121,7 +121,7 @@ struct ProfileImage: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color("BittersweetOrange").opacity(0.1),
+                            Color("Plum").opacity(0.1),
                             Color("FantasyPink").opacity(0.1)
                         ],
                         startPoint: .topLeading,
@@ -132,7 +132,7 @@ struct ProfileImage: View {
             
             Image(systemName: "person.circle.fill")
                 .font(.system(size: 40))
-                .foregroundColor(Color("BittersweetOrange"))
+                .foregroundColor(Color("Plum"))
         }
     }
 }
@@ -243,7 +243,7 @@ struct DueDateField: View {
             
             HStack {
                 Image(systemName: "calendar")
-                    .foregroundColor(Color("BittersweetOrange"))
+                    .foregroundColor(Color("Plum"))
                 
                 DatePicker(
                     "",
@@ -251,7 +251,7 @@ struct DueDateField: View {
                     displayedComponents: [.date]
                 )
                 .datePickerStyle(.compact)
-                .accentColor(Color("BittersweetOrange"))
+                .accentColor(Color("Plum"))
             }
             .padding()
             .background(
@@ -288,6 +288,6 @@ struct CloseButton: View {
             dismiss()
         }
         .font(.custom("Outfit-Medium", size: 16))
-        .foregroundColor(Color("BittersweetOrange"))
+        .foregroundColor(Color("Plum"))
     }
 }

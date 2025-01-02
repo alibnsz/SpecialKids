@@ -109,7 +109,7 @@ struct ProgressBar: View {
         HStack(spacing: 4) {
             ForEach(1...totalSteps, id: \.self) { step in
                 Rectangle()
-                    .fill(step <= currentStep ? Color("BittersweetOrange") : Color.gray.opacity(0.3))
+                    .fill(step <= currentStep ? Color("Plum") : Color.gray.opacity(0.3))
                     .frame(height: 4)
                     .animation(.spring(), value: currentStep)
             }

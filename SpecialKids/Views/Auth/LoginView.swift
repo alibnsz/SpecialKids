@@ -109,7 +109,7 @@ struct LoginView: View {
                     ) {
                         Text("Kayit Ol")
                             .font(.custom("Outfit-Medium", size: 16))
-                            .foregroundColor(Color("BittersweetOrange"))
+                            .foregroundColor(Color("Plum"))
                     }
                 }
             }

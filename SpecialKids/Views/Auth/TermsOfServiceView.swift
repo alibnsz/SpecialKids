@@ -49,7 +49,7 @@ struct TermsOfServiceView: View {
                         dismiss()
                     }
                     .font(.custom("Outfit-Medium", size: 16))
-                    .foregroundColor(Color("BittersweetOrange"))
+                    .foregroundColor(Color("Plum"))
                 }
             }
         }

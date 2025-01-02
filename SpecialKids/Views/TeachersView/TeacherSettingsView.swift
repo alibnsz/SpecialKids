@@ -19,7 +19,7 @@ struct TeacherSettingsView: View {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color("BittersweetOrange").opacity(0.1),
+                                            Color("Plum").opacity(0.1),
                                             Color("FantasyPink").opacity(0.1)
                                         ],
                                         startPoint: .topLeading,
@@ -30,7 +30,7 @@ struct TeacherSettingsView: View {
                             
                             Image(systemName: "person.circle.fill")
                                 .font(.system(size: 50))
-                                .foregroundColor(Color("BittersweetOrange"))
+                                .foregroundColor(Color("Plum"))
                         }
                         
                         // Kullanıcı Bilgileri
@@ -50,12 +50,12 @@ struct TeacherSettingsView: View {
                         } label: {
                             Text("Profili Düzenle")
                                 .font(.custom("Outfit-Medium", size: 14))
-                                .foregroundColor(Color("BittersweetOrange"))
+                                .foregroundColor(Color("Plum"))
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 10)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color("BittersweetOrange").opacity(0.1))
+                                        .fill(Color("Plum").opacity(0.1))
                                 )
                         }
                     }
@@ -93,14 +93,14 @@ struct TeacherSettingsView: View {
                             color: Color("SoftBlue")
                         ) {
                             Toggle("", isOn: $isDarkMode)
-                                .tint(Color("BittersweetOrange"))
+                                .tint(Color("Plum"))
                         }
                         
                         // Dil
                         TeacherSettingsRow(
                             icon: "globe",
                             title: "Dil",
-                            color: Color("BittersweetOrange")
+                            color: Color("Plum")
                         ) {
                             Text("Türkçe")
                                 .font(.custom("Outfit-Regular", size: 14))

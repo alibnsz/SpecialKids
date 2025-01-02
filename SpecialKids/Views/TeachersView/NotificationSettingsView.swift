@@ -12,7 +12,7 @@ struct NotificationSettingsView: View {
                     HStack(spacing: 16) {
                         Image(systemName: "bell.badge.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(Color("BittersweetOrange"))
+                            .foregroundColor(Color("Plum"))
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Push Bildirimleri")
@@ -24,7 +24,7 @@ struct NotificationSettingsView: View {
                         }
                     }
                 }
-                .tint(Color("BittersweetOrange"))
+                .tint(Color("Plum"))
             }
             
             Section {
@@ -44,7 +44,7 @@ struct NotificationSettingsView: View {
                         }
                     }
                 }
-                .tint(Color("BittersweetOrange"))
+                .tint(Color("Plum"))
                 
                 Toggle(isOn: $allowMessageNotifications) {
                     HStack(spacing: 16) {
@@ -62,11 +62,11 @@ struct NotificationSettingsView: View {
                         }
                     }
                 }
-                .tint(Color("BittersweetOrange"))
+                .tint(Color("Plum"))
             }
         }
         .navigationTitle("Bildirimler")
         .navigationBarTitleDisplayMode(.large)
-        .background(Color("SoftBlue").opacity(0.05))
+        .background(Color.gray.opacity(0.05))
     }
 } 

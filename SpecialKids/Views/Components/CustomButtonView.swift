@@ -80,7 +80,7 @@ enum ButtonType {
         case .primary, .small:
             return LinearGradient(
                 colors: [
-                    Color("BittersweetOrange"),
+                    Color("Plum"),
                     Color("FantasyPink")
                 ],
                 startPoint: .topLeading,
@@ -146,7 +146,7 @@ enum ButtonType {
     var shadowColor: Color {
         switch self {
         case .primary, .small:
-            return Color("BittersweetOrange").opacity(0.3)
+            return Color("Plum").opacity(0.3)
         case .secondary, .link:
             return Color("SoftBlue").opacity(0.3)
         }

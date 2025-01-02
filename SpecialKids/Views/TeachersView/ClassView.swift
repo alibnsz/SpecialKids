@@ -31,7 +31,7 @@ struct ClassView: View {
                             // Arama alanı
                             HStack {
                                 Image(systemName: "magnifyingglass")
-                                    .foregroundColor(Color("BittersweetOrange"))
+                                    .foregroundColor(Color("Plum"))
                                     .font(.system(size: 20))
                                 
                                 TextField("Sınıf ara...", text: $searchText)
@@ -56,7 +56,7 @@ struct ClassView: View {
                                     .background(
                                         LinearGradient(
                                             colors: [
-                                                Color("BittersweetOrange"),
+                                                Color("Plum"),
                                                 Color("FantasyPink")
                                             ],
                                             startPoint: .topLeading,
@@ -65,7 +65,7 @@ struct ClassView: View {
                                     )
                                     .clipShape(RoundedRectangle(cornerRadius: 14))
                                     .shadow(
-                                        color: Color("BittersweetOrange").opacity(0.3),
+                                        color: Color("Plum").opacity(0.3),
                                         radius: 8,
                                         x: 0,
                                         y: 4
@@ -114,7 +114,7 @@ struct EmptyClassesView: View {
         VStack(spacing: 20) {
             Image(systemName: "rectangle.stack.person.crop.fill")
                 .font(.system(size: 60))
-                .foregroundColor(Color("BittersweetOrange").opacity(0.3))
+                .foregroundColor(Color("Plum").opacity(0.3))
             
             Text("Henüz sınıf eklenmemiş")
                 .font(.custom("Outfit-SemiBold", size: 20))
@@ -149,8 +149,8 @@ struct ClassCard: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color("BittersweetOrange").opacity(0.1),
-                                    Color("FantasyPink").opacity(0.1)
+                                    Color("Plum").opacity(0.1),
+                                    Color("Khaki").opacity(0.1)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -160,7 +160,7 @@ struct ClassCard: View {
                     
                     Image(systemName: "person.2.fill")
                         .font(.system(size: 24))
-                        .foregroundColor(Color("BittersweetOrange"))
+                        .foregroundColor(Color("Plum"))
                 }
                 
                 VStack(spacing: 4) {
@@ -175,7 +175,7 @@ struct ClassCard: View {
                 
                 // İlerleme çubuğu
                 ProgressView(value: Double(schoolClass.students.count), total: 30)
-                    .progressViewStyle(LinearProgressViewStyle(tint: Color("BittersweetOrange")))
+                    .progressViewStyle(LinearProgressViewStyle(tint: Color("Plum")))
                     .frame(height: 4)
             }
             .padding(16)
@@ -183,7 +183,7 @@ struct ClassCard: View {
                 RoundedRectangle(cornerRadius: 20)
                     .fill(.white)
                     .shadow(
-                        color: Color("BittersweetOrange").opacity(0.05),
+                        color: Color("Plum").opacity(0.05),
                         radius: 15,
                         x: 0,
                         y: 5

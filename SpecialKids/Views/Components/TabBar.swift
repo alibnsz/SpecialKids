@@ -26,7 +26,7 @@ struct TeacherTabView: View {
                     Label("Profil", systemImage: "person")
                 }
         }
-        .accentColor(.bittersweetOrange)
+        .accentColor(.plum)
     }
 }
 
@@ -56,7 +56,7 @@ struct ParentTabView: View {
                     Label("Profil", systemImage: "person")
                 }
         }
-        .accentColor(.bittersweetOrange)
+        .accentColor(.plum)
     }
 }
 

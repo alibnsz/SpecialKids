@@ -15,7 +15,7 @@ struct StudentCard: View {
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        Color("BittersweetOrange").opacity(0.1),
+                                        Color("Plum").opacity(0.1),
                                         Color("FantasyPink").opacity(0.1)
                                     ],
                                     startPoint: .topLeading,
@@ -26,7 +26,7 @@ struct StudentCard: View {
                         
                         Image(systemName: "person.circle.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(Color("BittersweetOrange"))
+                            .foregroundColor(Color("Plum"))
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
@@ -74,12 +74,12 @@ struct StudentCard: View {
                     Text("Ödev Ver")
                         .font(.custom("Outfit-Medium", size: 14))
                 }
-                .foregroundColor(Color("BittersweetOrange"))
+                .foregroundColor(Color("Plum"))
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color("BittersweetOrange").opacity(0.1))
+                        .fill(Color("Plum").opacity(0.1))
                 )
             }
             .padding(16)

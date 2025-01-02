@@ -80,11 +80,11 @@ struct CategoryButton: View {
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(isSelected ? Color("BittersweetOrange") : .white)
+                        .fill(isSelected ? Color("Plum") : .white)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color("BittersweetOrange").opacity(isSelected ? 0 : 0.3), lineWidth: 1)
+                        .stroke(Color("Plum").opacity(isSelected ? 0 : 0.3), lineWidth: 1)
                 )
         }
     }

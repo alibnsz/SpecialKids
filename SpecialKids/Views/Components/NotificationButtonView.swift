@@ -7,7 +7,7 @@ struct NotificationButtonView: View {
         ZStack(alignment: .topTrailing) {
             Image(systemName: "bell")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundColor(Color("BittersweetOrange"))
+                .foregroundColor(Color("Plum"))
                 .frame(width: 40, height: 40)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
@@ -19,7 +19,7 @@ struct NotificationButtonView: View {
                     .font(.custom("Outfit-Bold", size: 12))
                     .foregroundColor(.white)
                     .frame(width: 18, height: 18)
-                    .background(Circle().fill(Color("BittersweetOrange")))
+                    .background(Circle().fill(Color("Plum")))
                     .offset(x: 6, y: -6)
             }
         }

@@ -16,7 +16,7 @@ struct AddCurriculumNoteSheet: View {
                     HeaderSection(noteData: $noteData)
                     
                     // MARK: - İçerik
-                    TeacherContentSection(content: $noteData.content)
+                    ContentSection(content: $noteData.content)
                     
                     // MARK: - Dosya Ekleme
                     AttachmentSection(
@@ -39,7 +39,7 @@ struct AddCurriculumNoteSheet: View {
                 }
                 .padding(20)
             }
-            .background(Color("SoftBlue").opacity(0.05))
+            .background(Color.gray.opacity(0.05))
             .navigationTitle("Yeni Not")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -48,7 +48,7 @@ struct AddCurriculumNoteSheet: View {
                         dismiss()
                     }
                     .font(.custom("Outfit-Medium", size: 16))
-                    .foregroundColor(Color("BittersweetOrange"))
+                    .foregroundColor(Color("Plum"))
                 }
             }
             .sheet(isPresented: $showDocumentPicker) {
@@ -111,7 +111,7 @@ struct HeaderSection: View {
 }
 
 // MARK: - Content Section
-struct TeacherContentSection: View {
+struct ContentSection: View {
     @Binding var content: String
     
     var body: some View {
@@ -222,7 +222,7 @@ struct AttachmentRow: View {
         HStack {
             Image(systemName: attachment.type.icon)
                 .font(.system(size: 20))
-                .foregroundColor(Color("BittersweetOrange"))
+                .foregroundColor(Color("Plum"))
             
             Text(attachment.name)
                 .font(.custom("Outfit-Regular", size: 14))
@@ -313,7 +313,7 @@ struct NotePreviewView: View {
                             .padding(.vertical, 6)
                             .background(
                                 Capsule()
-                                    .fill(Color("BittersweetOrange").opacity(0.1))
+                                    .fill(Color("Plum").opacity(0.1))
                             )
                     }
                     
@@ -350,7 +350,7 @@ struct NotePreviewView: View {
                 }
                 .padding(20)
             }
-            .background(Color("SoftBlue").opacity(0.05))
+            .background(Color.gray.opacity(0.05))
             .navigationTitle("Önizleme")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -359,7 +359,7 @@ struct NotePreviewView: View {
                         dismiss()
                     }
                     .font(.custom("Outfit-Medium", size: 16))
-                    .foregroundColor(Color("BittersweetOrange"))
+                    .foregroundColor(Color("Plum"))
                 }
             }
         }

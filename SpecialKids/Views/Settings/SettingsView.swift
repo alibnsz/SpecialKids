@@ -127,7 +127,7 @@ struct ProfileCard: View {
             // Profil resmi
             Image(systemName: "person.circle.fill")
                 .font(.system(size: 80))
-                .foregroundColor(Color("BittersweetOrange"))
+                .foregroundColor(Color("Plum"))
             
             // İsim, email ve telefon
             VStack(spacing: 4) {
@@ -264,7 +264,7 @@ struct EditProfileSheet: View {
                         dismiss()
                     }
                     .font(.custom("Outfit-Medium", size: 16))
-                    .foregroundColor(Color("BittersweetOrange"))
+                    .foregroundColor(Color("Plum"))
                 }
             }
             .background(.white)
