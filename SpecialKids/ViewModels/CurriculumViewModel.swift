@@ -10,12 +10,13 @@ class CurriculumViewModel: ObservableObject {
         
         db.collection("curriculum")
             .whereField("teacherId", isEqualTo: teacherId)
-            .order(by: "date", descending: true)
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let documents = snapshot?.documents else {
-                    print("Error fetching notes: \(error?.localizedDescription ?? "")")
+            .getDocuments { [weak self] snapshot, error in
+                if let error = error {
+                    print("Error fetching notes: \(error)")
                     return
                 }
+                
+                guard let documents = snapshot?.documents else { return }
                 
                 self?.notes = documents.compactMap { document -> CurriculumNote? in
                     let data = document.data()
@@ -26,9 +27,10 @@ class CurriculumViewModel: ObservableObject {
                         date: (data["date"] as? Timestamp)?.dateValue() ?? Date(),
                         category: data["category"] as? String ?? "Genel",
                         tags: data["tags"] as? [String] ?? [],
-                        attachments: []  // Dosya yükleme işlemi için storage entegrasyonu gerekiyor
+                        attachments: [],
+                        teacherId: data["teacherId"] as? String ?? ""
                     )
-                }
+                }.sorted { $0.date > $1.date }
             }
     }
     
@@ -41,13 +43,16 @@ class CurriculumViewModel: ObservableObject {
             "content": content,
             "date": Timestamp(date: Date()),
             "category": category,
-            "tags": tags
-            // Dosya yükleme işlemi için storage entegrasyonu gerekiyor
+            "tags": tags,
+            "attachments": []
         ]
         
         db.collection("curriculum").addDocument(data: noteData) { error in
             if let error = error {
                 print("Error adding note: \(error.localizedDescription)")
+            } else {
+                // Not başarıyla eklendi, notları yeniden yükle
+                self.fetchNotes()
             }
         }
     }

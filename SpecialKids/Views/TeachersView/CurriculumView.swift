@@ -56,8 +56,8 @@ struct CurriculumView: View {
                                     .background(
                                         LinearGradient(
                                             colors: [
-                                                Color("Plum"),
-                                                Color("FantasyPink")
+                                                Color("DarkPurple"),
+                                                Color("Plum")
                                             ],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing

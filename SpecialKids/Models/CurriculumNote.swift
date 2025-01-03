@@ -1,15 +1,37 @@
 import FirebaseFirestore
+import FirebaseFirestore
 
-struct CurriculumNote: Identifiable, Equatable {
-    let id: String
+struct CurriculumNote: Identifiable, Codable {
+    @DocumentID var id: String?
     let title: String
     let content: String
     let date: Date
     let category: String
     let tags: [String]
-    let attachments: [AttachmentItem]
+    let attachments: [String]
+    let teacherId: String
     
-    init(id: String, title: String, content: String, date: Date, category: String = "Genel", tags: [String] = [], attachments: [AttachmentItem] = []) {
+    enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case content
+        case date
+        case category
+        case tags
+        case attachments
+        case teacherId
+    }
+    
+    init(
+        id: String? = nil,
+        title: String,
+        content: String,
+        date: Date = Date(),
+        category: String = "Genel",
+        tags: [String] = [],
+        attachments: [String] = [],
+        teacherId: String
+    ) {
         self.id = id
         self.title = title
         self.content = content
@@ -17,15 +39,6 @@ struct CurriculumNote: Identifiable, Equatable {
         self.category = category
         self.tags = tags
         self.attachments = attachments
-    }
-    
-    static func == (lhs: CurriculumNote, rhs: CurriculumNote) -> Bool {
-        lhs.id == rhs.id &&
-        lhs.title == rhs.title &&
-        lhs.content == rhs.content &&
-        lhs.date == rhs.date &&
-        lhs.category == rhs.category &&
-        lhs.tags == rhs.tags &&
-        lhs.attachments == rhs.attachments
+        self.teacherId = teacherId
     }
 }
