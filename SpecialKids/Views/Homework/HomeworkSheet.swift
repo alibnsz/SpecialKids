@@ -121,8 +121,8 @@ struct ProfileImage: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color("Plum").opacity(0.1),
-                            Color("FantasyPink").opacity(0.1)
+                            Color("DarkPurple").opacity(0.1),
+                            Color("Plum").opacity(0.1)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -210,10 +210,10 @@ struct DescriptionField: View {
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color("SoftBlue").opacity(0.05))
+                        .fill(Color("Plum").opacity(0.05))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color("SoftBlue").opacity(0.1), lineWidth: 1)
+                                .stroke(Color("Plum").opacity(0.1), lineWidth: 1)
                         )
                 )
                 .overlay(
@@ -256,7 +256,7 @@ struct DueDateField: View {
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color("SoftBlue").opacity(0.05))
+                    .fill(Color("Plum").opacity(0.05))
             )
         }
     }

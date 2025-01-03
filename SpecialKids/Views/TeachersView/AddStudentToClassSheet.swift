@@ -21,8 +21,8 @@ struct AddStudentToClassSheet: View {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color("Plum").opacity(0.1),
-                                            Color("FantasyPink").opacity(0.1)
+                                            Color("DarkPurple").opacity(0.1),
+                                            Color("Plum").opacity(0.1)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing

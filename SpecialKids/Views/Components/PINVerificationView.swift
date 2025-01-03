@@ -13,7 +13,7 @@ struct PINVerificationView: View {
             ZStack {
                 // Arka plan gradyanı
                 LinearGradient(
-                    colors: [Color("Plum").opacity(0.1), Color("FantasyPink").opacity(0.2)],
+                    colors: [Color("Plum").opacity(0.2), Color("FantasyPink").opacity(0.1)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
