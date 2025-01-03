@@ -1,297 +1,323 @@
 import SwiftUI
-import FirebaseFirestore
+import FirebaseAuth
 
 struct SettingsView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
-    @State private var parentName: String = ""
-    @State private var parentEmail: String = ""
-    @State private var parentPhone: String = ""
-    @State private var showEditProfileSheet = false
-    @State private var showPremiumSheet = false
     @State private var showLogoutAlert = false
-    
-    private let horizontalPadding: CGFloat = 20
+    @State private var showEditProfileSheet = false
+    @State private var showExpertiseSheet = false
+    @AppStorage("isDarkMode") private var isDarkMode = false
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Profil Kartı
-                ProfileCard(name: parentName, email: parentEmail, phone: parentPhone)
-                    .padding(.horizontal, horizontalPadding)
-                
-                // Ayarlar Bölümleri
-                VStack(spacing: 8) {
-                    SettingsSection(title: "Hesap") {
-                        SettingsRow(icon: "person.fill", title: "Profili Düzenle", color: .blue) {
-                            showEditProfileSheet = true
-                        }
-                        
-                        SettingsRow(icon: "crown.fill", title: "Premium'a Geç", color: .yellow) {
-                            showPremiumSheet = true
-                        }
-                    }
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // MARK: - Profil Kartı
+                    ParentProfileCard(
+                        email: firebaseManager.auth.currentUser?.email ?? "",
+                        onEditTap: { showEditProfileSheet = true }
+                    )
+                    // MARK: - Premium Kartı
+                    ParentPremiumCard()
                     
-                    SettingsSection(title: "Uygulama") {
-                        SettingsRow(icon: "bell.fill", title: "Bildirimler", color: .red) {
-                            // Bildirim ayarları
-                        }
-                        
-                        SettingsRow(icon: "lock.fill", title: "Gizlilik", color: .gray) {
-                            // Gizlilik ayarları
-                        }
-                    }
-                    
-                    SettingsSection(title: "Diğer") {
-                        SettingsRow(icon: "star.fill", title: "Uygulamayı Değerlendir", color: .orange) {
-                            // App Store'a yönlendir
-                        }
-                        
-                        SettingsRow(icon: "envelope.fill", title: "İletişim", color: .green) {
-                            // İletişim sayfası
-                        }
-                        
-                        Button {
-                            showLogoutAlert = true
-                        } label: {
-                            HStack {
-                                Image(systemName: "rectangle.portrait.and.arrow.right")
-                                    .foregroundColor(.red)
-                                Text("Çıkış Yap")
-                                    .foregroundColor(.red)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.gray.opacity(0.5))
+                    // MARK: - Ayarlar Grupları
+                    VStack(spacing: 20) {
+                        // Uygulama Ayarları
+                        ParentSettingsGroup(title: "Uygulama") {
+                            ParentSettingsRow(
+                                icon: "bell.fill",
+                                title: "Bildirimler",
+                                color: Color("Plum")
+                            ) {
+                                NavigationLink {
+                                    NotificationSettingsView()
+                                } label: {
+                                    ParentSettingsNavigationLabel()
+                                }
                             }
-                            .padding()
-                            .background(Color.white)
+                            
+                            Divider()
+                                .padding(.leading, 44)
+                            
+                            ParentSettingsRow(
+                                icon: "moon.fill",
+                                title: "Karanlık Mod",
+                                color: Color("Plum")
+                            ) {
+                                Toggle("", isOn: $isDarkMode)
+                                    .tint(Color("Plum"))
+                                    .scaleEffect(0.8)
+                            }
+                            
+                            Divider()
+                                .padding(.leading, 44)
+                            
+                            ParentSettingsRow(
+                                icon: "globe",
+                                title: "Dil",
+                                color: Color("Plum")
+                            ) {
+                                Text("Türkçe")
+                                    .font(.custom("Outfit-Regular", size: 14))
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Divider()
+                                .padding(.leading, 44)
+                            
+                            ParentSettingsRow(
+                                icon: "questionmark.circle.fill",
+                                title: "Yardım",
+                                color: Color("Plum")
+                            ) {
+                                NavigationLink {
+                                    HelpView()
+                                } label: {
+                                    ParentSettingsNavigationLabel()
+                                }
+                            }
                         }
                     }
+                    
+                    // MARK: - Çıkış Yap Butonu
+                    ParentLogoutButton(showAlert: $showLogoutAlert)
+                        .padding(.top, 8)
                 }
-                .padding(.horizontal, horizontalPadding)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 20)
             }
-            .padding(.top, 16)
-        }
-        .background(Color.gray.opacity(0.05))
-        .navigationTitle("Profil")
-        .navigationBarTitleDisplayMode(.large)
-        .onAppear {
-            fetchParentProfile()
-        }
-        .sheet(isPresented: $showEditProfileSheet) {
-            EditProfileSheet(parentName: $parentName, parentEmail: $parentEmail, parentPhone: $parentPhone)
-                .presentationDetents([.medium])
-        }
-        .alert("Çıkış Yap", isPresented: $showLogoutAlert) {
-            Button("İptal", role: .cancel) {}
-            Button("Çıkış Yap", role: .destructive) {
-                signOut()
-            }
-        } message: {
-            Text("Hesabınızdan çıkış yapmak istediğinize emin misiniz?")
-        }
-    }
-    
-    private func fetchParentProfile() {
-        guard let userId = firebaseManager.auth.currentUser?.uid else { return }
-        
-        Firestore.firestore().collection("parents")
-            .document(userId)
-            .getDocument { snapshot, error in
-                if let data = snapshot?.data() {
-                    self.parentName = data["name"] as? String ?? ""
-                    self.parentEmail = data["email"] as? String ?? ""
-                    self.parentPhone = data["phone"] as? String ?? ""
+            .background(Color.gray.opacity(0.05))
+            .navigationTitle("Ayarlar")
+            .navigationBarTitleDisplayMode(.large)
+            .alert("Çıkış Yap", isPresented: $showLogoutAlert) {
+                Button("İptal", role: .cancel) {}
+                Button("Çıkış Yap", role: .destructive) {
+                    firebaseManager.signOut()
                 }
+            } message: {
+                Text("Hesabınızdan çıkış yapmak istediğinize emin misiniz?")
             }
-    }
-    
-    private func signOut() {
-        do {
-            try firebaseManager.auth.signOut()
-            UserDefaults.standard.removeObject(forKey: "userId")
-            UserDefaults.standard.removeObject(forKey: "userRole")
-        } catch {
-            print("Error signing out: \(error)")
         }
     }
 }
 
 // MARK: - Profile Card
-struct ProfileCard: View {
-    let name: String
+struct ParentProfileCard: View {
     let email: String
-    let phone: String
+    let onEditTap: () -> Void
+    @State private var parentInfo: ParentInfo?
     
     var body: some View {
         VStack(spacing: 16) {
-            // Profil resmi
-            Image(systemName: "person.circle.fill")
-                .font(.system(size: 80))
-                .foregroundColor(Color("Plum"))
+            // MARK: - Profil Resmi ve İsim
+            ZStack(alignment: .bottomTrailing) {
+                // Büyük arka plan dairesi
+
+                
+                // Profil resmi
+                Circle()
+                    .fill(Color("Plum").opacity(0.1))
+                    .frame(width: 80, height: 80)
+                    .overlay(
+                        Image(systemName: "person")
+                            .font(.system(size: 32))
+                            .foregroundColor(Color("Plum"))
+                    )
+                
+                // Düzenle butonu
+                Button(action: onEditTap) {
+                    Circle()
+                        .fill(Color("Plum"))
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Image(systemName: "pencil")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                        )
+                }
+                .offset(x: 8, y: 8)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 8)
             
-            // İsim, email ve telefon
+            // MARK: - Kullanıcı Bilgileri
             VStack(spacing: 4) {
-                Text(name)
-                    .font(.custom("Outfit-SemiBold", size: 24))
+                if let name = parentInfo?.name {
+                    Text(name)
+                        .font(.custom("Outfit-SemiBold", size: 18))
+                        .foregroundColor(Color("NeutralBlack"))
+                }
+                
                 Text(email)
-                    .font(.custom("Outfit-Regular", size: 16))
+                    .font(.custom("Outfit-Regular", size: 14))
                     .foregroundColor(.secondary)
-                if !phone.isEmpty {
-                    Text(phone)
-                        .font(.custom("Outfit-Regular", size: 16))
-                        .foregroundColor(.secondary)
+            }
+            
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white)
+        )
+        .onAppear {
+            fetchTeacherInfo()
+        }
+    }
+    
+    private func fetchTeacherInfo() {
+        guard let userId = FirebaseManager.shared.auth.currentUser?.uid else { return }
+        
+        FirebaseManager.shared.db.collection("parents")
+            .document(userId)
+            .getDocument { document, error in
+                if let data = document?.data() {
+                    self.parentInfo = ParentInfo(
+                        name: data["name"] as? String ?? ""
+                    )
                 }
             }
+    }
+}
+
+// MARK: - Teacher Info Model
+struct ParentInfo {
+    let name: String
+}
+// MARK: - Premium Card
+struct ParentPremiumCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(Color("FantasyPink"))
+                
+                Text("Premium")
+                    .font(.custom("Outfit-Bold", size: 18))
+                    .foregroundColor(Color("NeutralBlack"))
+            }
+            
+            Text("Sınırsız özellikler için premium'a geçin")
+                .font(.custom("Outfit-Regular", size: 14))
+                .foregroundColor(.secondary)
+            
+            Button {
+                // Premium action
+            } label: {
+                Text("Premium'a Geç")
+                    .font(.custom("Outfit-SemiBold", size: 14))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color("Plum"))
+                    .cornerRadius(12)
+            }
+            .padding(.top, 4)
         }
+        .padding(16)
         .frame(maxWidth: .infinity)
-        .padding(24)
         .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color.white)
-                .shadow(color: Color.black.opacity(0.05), radius: 15, x: 0, y: 5)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white)
         )
     }
 }
 
-// MARK: - Settings Section
-struct SettingsSection<Content: View>: View {
-    let title: String
-    let content: Content
-    
-    init(title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.content = content()
-    }
+// MARK: - Logout Button
+struct ParentLogoutButton: View {
+    @Binding var showAlert: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        Button {
+            showAlert = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                Text("Çıkış Yap")
+                    .font(.custom("Outfit-SemiBold", size: 16))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                LinearGradient(
+                    colors: [Color("DarkPurple"), Color("Plum")],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: Color("DarkPurple").opacity(0.3), radius: 10, y: 5)
+        }
+    }
+}
+
+// MARK: - Settings Group
+struct ParentSettingsGroup<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
             Text(title)
-                .font(.custom("Outfit-SemiBold", size: 18))
-                .foregroundColor(.secondary)
+                .font(.custom("Outfit-SemiBold", size: 20))
+                .foregroundColor(Color("NeutralBlack"))
                 .padding(.leading, 4)
             
             VStack(spacing: 1) {
-                content
+                content()
             }
-            .background(Color.white)
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.05), radius: 15, x: 0, y: 5)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.white)
+            )
         }
+    }
+}
+
+// MARK: - Settings Navigation Label
+struct ParentSettingsNavigationLabel: View {
+    var body: some View {
+        Image(systemName: "chevron.right")
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(.secondary)
     }
 }
 
 // MARK: - Settings Row
-struct SettingsRow: View {
+struct ParentSettingsRow<Content: View>: View {
     let icon: String
     let title: String
     let color: Color
-    let action: () -> Void
+    let content: () -> Content
     
     var body: some View {
-        Button(action: action) {
-            HStack {
+        HStack(spacing: 12) {
+            // İkon
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.1))
+                    .frame(width: 36, height: 36)
+                
                 Image(systemName: icon)
+                    .font(.system(size: 15))
                     .foregroundColor(color)
-                Text(title)
-                    .foregroundColor(.primary)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.gray.opacity(0.5))
             }
-            .padding()
-            .background(Color.white)
+            
+            // Başlık
+            Text(title)
+                .font(.custom("Outfit-Regular", size: 16))
+                .foregroundColor(Color("NeutralBlack"))
+            
+            Spacer()
+            
+            // İçerik
+            content()
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 }
 
-// MARK: - Edit Profile Sheet
-struct EditProfileSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var parentName: String
-    @Binding var parentEmail: String
-    @Binding var parentPhone: String
-    @State private var tempName: String = ""
-    @State private var tempEmail: String = ""
-    @State private var tempPhone: String = ""
-    
-    init(parentName: Binding<String>, parentEmail: Binding<String>, parentPhone: Binding<String>) {
-        _parentName = parentName
-        _parentEmail = parentEmail
-        _parentPhone = parentPhone
-    }
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                // Profil düzenleme alanları
-                VStack(spacing: 16) {
-                    CustomTextField(
-                        placeholder: "Ad Soyad",
-                        text: $tempName
-                    )
-                    
-                    CustomTextField(
-                        placeholder: "E-posta",
-                        text: $tempEmail
-                    )
-                    
-                    CustomTextField(
-                        placeholder: "Telefon",
-                        text: $tempPhone
-                    )
-                    .keyboardType(.phonePad)
-                }
-                .padding(.horizontal)
-                
-                // Kaydet butonu
-                CustomButtonView(
-                    title: "Kaydet",
-                    disabled: tempName.isEmpty,
-                    type: .primary
-                ) {
-                    updateProfile()
-                }
-                .padding(.horizontal)
-                
-                Spacer()
-            }
-            .padding(.top, 24)
-            .navigationTitle("Profili Düzenle")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Kapat") {
-                        dismiss()
-                    }
-                    .font(.custom("Outfit-Medium", size: 16))
-                    .foregroundColor(Color("Plum"))
-                }
-            }
-            .background(.white)
-            .onAppear {
-                tempName = parentName
-                tempEmail = parentEmail
-                tempPhone = parentPhone
-            }
-        }
-    }
-    
-    private func updateProfile() {
-        guard let userId = FirebaseManager.shared.auth.currentUser?.uid else { return }
-        
-        Firestore.firestore().collection("parents")
-            .document(userId)
-            .updateData([
-                "name": tempName,
-                "email": tempEmail,
-                "phone": tempPhone
-            ]) { error in
-                if error == nil {
-                    parentName = tempName
-                    parentEmail = tempEmail
-                    parentPhone = tempPhone
-                    dismiss()
-                }
-            }
-    }
-} 
+
