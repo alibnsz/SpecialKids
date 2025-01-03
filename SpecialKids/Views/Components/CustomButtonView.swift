@@ -80,8 +80,8 @@ enum ButtonType {
         case .primary, .small:
             return LinearGradient(
                 colors: [
-                    Color("Plum"),
-                    Color("FantasyPink")
+                    Color("DarkPurple"),
+                    Color("Plum")
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing

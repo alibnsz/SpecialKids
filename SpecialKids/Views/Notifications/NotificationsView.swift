@@ -30,6 +30,7 @@ struct NotificationsView: View {
             }
         }
         .navigationTitle("Bildirimler")
+        .background(Color.gray.opacity(0.05))
         .onAppear {
             print("Notifications count: \(notifications.count)")
             notifications.forEach { notification in
@@ -97,6 +98,6 @@ struct EmptyNotificationsView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(UIColor.systemGray6))
+        .background(Color.gray.opacity(0.05))
     }
 } 

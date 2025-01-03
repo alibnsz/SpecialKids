@@ -236,7 +236,7 @@ struct AnimatedRoleSelector: View {
             ZStack {
                 // Arka plan
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color("FantasyPink"))
+                    .fill(Color("Plum").opacity(0.2))
                 
                 // Seçili olan için kaydırılan mavi arka plan
                 GeometryReader { geometry in
