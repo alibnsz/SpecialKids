@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ClassView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
+    @StateObject private var curriculumViewModel = CurriculumViewModel()
     @State private var showAddClassSheet = false
     @State private var searchText = ""
     
@@ -13,15 +14,10 @@ struct ClassView: View {
                     VStack(spacing: 16) {
                         // Üst başlık
                         HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Sınıflarım")
-                                    .font(.custom("Outfit-Bold", size: 28))
-                                    .foregroundColor(Color("NeutralBlack"))
-                                
-                                Text("Öğrencilerinizi yönetin")
-                                    .font(.custom("Outfit-Regular", size: 16))
-                                    .foregroundColor(.secondary)
-                            }
+                            Text("Öğrencilerinizi yönetin")
+                                .font(.custom("Outfit-Regular", size: 16))
+                                .foregroundColor(.secondary)
+                            
                             Spacer()
                         }
                         .padding(.horizontal)
@@ -56,8 +52,8 @@ struct ClassView: View {
                                     .background(
                                         LinearGradient(
                                             colors: [
-                                                Color("Plum"),
-                                                Color("FantasyPink")
+                                                Color("DarkPurple"),
+                                                Color("Plum")
                                             ],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
@@ -94,8 +90,14 @@ struct ClassView: View {
                 .padding(.top, 16)
             }
             .background(Color.gray.opacity(0.05))
+            .navigationTitle("Sınıflarım")
+            .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showAddClassSheet) {
                 AddClassSheet()
+                    .presentationDetents([.fraction(0.75)])
+            }
+            .onAppear {
+                curriculumViewModel.fetchNotes()
             }
         }
     }
@@ -105,6 +107,19 @@ struct ClassView: View {
             return firebaseManager.classes
         }
         return firebaseManager.classes.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    private var upcomingEvents: [CurriculumNote] {
+        let calendar = Calendar.current
+        let threeDaysFromNow = calendar.date(byAdding: .day, value: 3, to: Date()) ?? Date()
+        
+        return curriculumViewModel.notes.filter { note in
+            note.date <= threeDaysFromNow && note.date >= Date()
+        }.sorted { $0.date < $1.date }
+    }
+    
+    private var upcomingEventsCount: Int {
+        upcomingEvents.count
     }
 }
 

@@ -54,8 +54,8 @@ struct ClassDetailView: View {
                             .background(
                                 LinearGradient(
                                     colors: [
-                                        Color("Plum"),
-                                        Color("FantasyPink")
+                                        Color("DarkPurple"),
+                                        Color("Plum")
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -96,6 +96,7 @@ struct ClassDetailView: View {
         .navigationBarTitleDisplayMode(.large)
         .sheet(isPresented: $showAddStudentSheet) {
             AddStudentToClassSheet(classId: schoolClass.id)
+                .presentationDetents([.fraction(0.75)])
         }
         .sheet(item: $selectedStudent) { student in
             HomeworkSheet(student: student)
