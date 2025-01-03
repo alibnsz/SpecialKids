@@ -966,4 +966,131 @@ class FirebaseManager: ObservableObject {
                 }
             }
     }
+    func updateDailyPlayTime(for studentId: String, additionalTime: TimeInterval) {
+        let db = Firestore.firestore()
+        let studentRef = db.collection("children").document(studentId)
+        
+        studentRef.getDocument { snapshot, error in
+            if let error = error {
+                print("Error fetching student: \(error)")
+                return
+            }
+            
+            guard let data = snapshot?.data() else { 
+                print("No student data found")
+                return 
+            }
+            
+            // Mevcut günlük süreyi al
+            let currentDailyTime = data["dailyPlayTime"] as? TimeInterval ?? 0
+            
+            // Yeni süreyi hesapla
+            let newDailyTime = currentDailyTime + additionalTime
+            
+            print("Updating daily play time: Current(\(Int(currentDailyTime/60)))min + New(\(Int(additionalTime/60)))min = Total(\(Int(newDailyTime/60)))min")
+            
+            // Firestore'u güncelle
+            studentRef.updateData([
+                "dailyPlayTime": newDailyTime,
+                "lastPlayDate": Timestamp(date: Date())
+            ]) { error in
+                if let error = error {
+                    print("Error updating daily play time: \(error)")
+                } else {
+                    print("Daily play time updated successfully")
+                    // Güncelleme başarılı olduğunda bildirim gönder
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("DailyPlayTimeUpdated"),
+                        object: nil,
+                        userInfo: ["dailyPlayTime": newDailyTime]
+                    )
+                }
+            }
+        }
+    }
+    func fetchStreak(for studentId: String, completion: @escaping (Int) -> Void) {
+        let db = Firestore.firestore()
+        let studentRef = db.collection("children").document(studentId)
+        
+        studentRef.getDocument { snapshot, error in
+            if let error = error {
+                print("Error fetching streak: \(error)")
+                completion(0)
+                return
+            }
+            
+            guard let data = snapshot?.data() else {
+                print("No student data found")
+                completion(0)
+                return
+            }
+            
+            // Streak'i al veya varsayılan olarak 0 döndür
+            let streak = data["streak"] as? Int ?? 0
+            
+            // Son oyun tarihini kontrol et
+            if let lastPlayTimestamp = data["lastPlayDate"] as? Timestamp {
+                let lastPlayDate = lastPlayTimestamp.dateValue()
+                let calendar = Calendar.current
+                
+                // Eğer son oyun bugün değilse streak'i sıfırla
+                if !calendar.isDateInToday(lastPlayDate) {
+                    studentRef.updateData([
+                        "streak": 0
+                    ]) { error in
+                        if let error = error {
+                            print("Error resetting streak: \(error)")
+                        }
+                    }
+                    completion(0)
+                } else {
+                    completion(streak)
+                }
+            } else {
+                completion(streak)
+            }
+        }
+    }
+    
+    // Streak'i güncelle
+    func updateStreak(for studentId: String) {
+        let db = Firestore.firestore()
+        let studentRef = db.collection("children").document(studentId)
+        
+        studentRef.getDocument { snapshot, error in
+            if let error = error {
+                print("Error fetching student for streak update: \(error)")
+                return
+            }
+            
+            guard let data = snapshot?.data() else { return }
+            
+            let currentStreak = data["streak"] as? Int ?? 0
+            let lastPlayTimestamp = data["lastPlayDate"] as? Timestamp
+            let calendar = Calendar.current
+            
+            if let lastPlayDate = lastPlayTimestamp?.dateValue() {
+                // Eğer son oyun dünse streak'i artır
+                if calendar.isDateInYesterday(lastPlayDate) {
+                    studentRef.updateData([
+                        "streak": currentStreak + 1,
+                        "lastPlayDate": Timestamp(date: Date())
+                    ])
+                }
+                // Eğer son oyun bugün değilse ve dün de değilse streak'i 1'e ayarla
+                else if !calendar.isDateInToday(lastPlayDate) {
+                    studentRef.updateData([
+                        "streak": 1,
+                        "lastPlayDate": Timestamp(date: Date())
+                    ])
+                }
+            } else {
+                // Hiç oyun oynamamışsa streak'i 1'e ayarla
+                studentRef.updateData([
+                    "streak": 1,
+                    "lastPlayDate": Timestamp(date: Date())
+                ])
+            }
+        }
+    }
 }

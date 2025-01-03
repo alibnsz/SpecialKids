@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import FirebaseFirestore
 
 class FruitBasketViewModel: ObservableObject {
     @Published private(set) var targetFruit: FruitItem
@@ -25,6 +26,8 @@ class FruitBasketViewModel: ObservableObject {
     private var audioPlayer: AVAudioPlayer?
     private var startTime: Date?
     private var playTime: TimeInterval = 0
+    private var isGameActive = false
+    private var hasGameBeenSaved = false
     
     let fruitData = [
         ("🍎", "Elma", Color.red, "Sonbahar", "C ve B", "Bir elma yemek, kahve içmekten daha fazla enerji verir!"),
@@ -90,6 +93,11 @@ class FruitBasketViewModel: ObservableObject {
     }
     
     func checkFruit(_ selectedFruit: FruitItem) {
+        if let start = startTime {
+            playTime += Date().timeIntervalSince(start)
+            startTime = Date()
+        }
+        
         if selectedFruit == targetFruit {
             // Doğru seçim
             correctMatches += 1
@@ -107,9 +115,6 @@ class FruitBasketViewModel: ObservableObject {
                 attemptCount: 1
             ))
             
-            // Her doğru cevaptan sonra kaydet
-            saveGameResults()
-            
             playSound("correct")
             
             // Score animasyonunu resetle
@@ -117,9 +122,19 @@ class FruitBasketViewModel: ObservableObject {
                 self.scoreChange = false
             }
             
-            // Yeni round'u başlat
+            // Yeni round başlamadan önce süreyi durdur
+            endGame()
+            
+            // Eğer tüm meyveler tamamlandıysa oyunu kaydet
+            if unusedFruits.isEmpty && !hasGameBeenSaved {
+                print("Saving game results...") // Debug için
+                saveGameResults()
+                hasGameBeenSaved = true
+            }
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation {
+                    self.startGame()
                     self.startNewRound()
                 }
             }
@@ -147,9 +162,6 @@ class FruitBasketViewModel: ObservableObject {
             playSound("wrong")
             let generator = UIImpactFeedbackGenerator(style: .medium)
             generator.impactOccurred()
-            
-            // Her yanlış cevaptan sonra da kaydet
-            saveGameResults()
         }
     }
     
@@ -166,38 +178,69 @@ class FruitBasketViewModel: ObservableObject {
     
     func startGame() {
         startTime = Date()
+        isGameActive = true
     }
     
     func endGame() {
-        if let start = startTime {
-            playTime += Date().timeIntervalSince(start)
-            startTime = nil
-        }
+        guard isGameActive, let start = startTime else { return }
+        playTime += Date().timeIntervalSince(start)
+        startTime = nil
+        isGameActive = false
     }
     
     func saveGameResults() {
+        guard !hasGameBeenSaved else { 
+            print("Game already saved, skipping...")
+            return 
+        }
+        
         FirebaseManager.shared.fetchFirstChild { [weak self] student in
-            guard let self = self, let student = student else { return }
+            guard let self = self, let student = student else { 
+                print("No student found")
+                return 
+            }
             
-            // Önce günlük toplam süreyi al
-            FirebaseManager.shared.getDailyPlayTime(for: student.id) { dailyTime in
-                // Oyun süresini hesapla
-                if let start = self.startTime {
-                    self.playTime += Date().timeIntervalSince(start)
+            // Son süre güncellemesi
+            if let start = startTime {
+                playTime += Date().timeIntervalSince(start)
+            }
+            
+            print("Preparing game data for save...") // Debug için
+            
+            let gameData: [String: Any] = [
+                "studentId": student.id,
+                "correctMatches": self.correctMatches,
+                "wrongMatches": self.wrongMatches,
+                "score": self.score,
+                "fruits": self.fruitResults.map { fruit in
+                    [
+                        "fruitName": fruit.fruitName,
+                        "isCorrect": fruit.isCorrect,
+                        "attemptCount": fruit.attemptCount
+                    ]
+                },
+                "playTime": self.playTime,
+                "dailyPlayTime": self.playTime,
+                "gameCompleted": true,
+                "lastPlayDate": Timestamp(date: Date()),
+                "lastStreakDate": Timestamp(date: Date()),
+                "streak": 1
+            ]
+            
+            print("Saving to Firestore...") // Debug için
+            
+            Firestore.firestore().collection("gameStats").addDocument(data: gameData) { [weak self] error in
+                if let error = error {
+                    print("Error saving game stats: \(error.localizedDescription)")
+                } else {
+                    print("Game stats saved successfully")
+                    
+                    // Günlük hedef süreyi güncelle
+                    FirebaseManager.shared.updateDailyPlayTime(for: student.id, additionalTime: self?.playTime ?? 0)
+                    
+                    // Bildirim gönder
+                    NotificationCenter.default.post(name: NSNotification.Name("GameCompleted"), object: nil)
                 }
-                
-                let totalDailyTime = dailyTime + self.playTime
-                
-                FirebaseManager.shared.saveGameStats(
-                    studentId: student.id,
-                    correctMatches: self.correctMatches,
-                    wrongMatches: self.wrongMatches,
-                    score: self.score,
-                    fruits: self.fruitResults,
-                    playTime: self.playTime,
-                    dailyPlayTime: totalDailyTime,
-                    gameCompleted: self.gameCompleted
-                )
             }
         }
     }

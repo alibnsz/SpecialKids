@@ -12,29 +12,43 @@ struct ParentView: View {
     @State private var notifications: [Notification] = []
     @State private var showNotifications = false
     @State private var dailyTarget: TimeInterval = 30 * 60 // 30 dakika varsayılan değer
+    @State private var showPremiumView = false
     
     private let horizontalPadding: CGFloat = 20
     
     var body: some View {
-            ScrollView {
-                VStack(spacing: 24) {
+        ScrollView {
+            VStack(spacing: 24) {
                 // Üst başlık - Hoşgeldin mesajı
-                HStack {
+                HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Hoşgeldin,")
                             .font(.custom("Outfit-Regular", size: 16))
                             .foregroundColor(.secondary)
                         Text(parentName)
-                            .font(.custom("Outfit-SemiBold", size: 28))
+                            .font(.custom("Outfit-SemiBold", size: 26))
                             .foregroundColor(Color("NeutralBlack"))
                     }
                     
                     Spacer()
                     
-                    // Bildirim ve arama ikonları
+                    // Bildirim ve çocuk ekleme butonları
                     HStack(spacing: 12) {
-                        HeaderIconButton(icon: "magnifyingglass") {
-                            // Arama işlemi
+                        Button(action: {
+                            if children.isEmpty {
+                                showAddChildSheet = true
+                            } else {
+                                showPremiumView = true
+                            }
+                        }) {
+                            Image(systemName: "person.badge.plus")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(Color("Plum"))
+                                .frame(width: 40, height: 40)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.white)
+                                )
                         }
                         
                         NavigationLink {
@@ -75,8 +89,8 @@ struct ParentView: View {
         }
         .background(Color.gray.opacity(0.05))
         .navigationBarHidden(true)
-            .onAppear {
-                fetchChildren()
+        .onAppear {
+            fetchChildren()
             fetchParentName()
             fetchNotifications()
             fetchSavedDailyTarget()
@@ -96,6 +110,9 @@ struct ParentView: View {
         }
         .sheet(isPresented: $showNotifications) {
             NotificationsView(notifications: notifications)
+        }
+        .sheet(isPresented: $showPremiumView) {
+            PremiumView()
         }
     }
     
@@ -165,8 +182,12 @@ struct ParentView: View {
 struct DailyProgressCard: View {
     let child: Student
     let dailyTarget: TimeInterval
-    @State private var gameStats: GameStats?
+    @State private var dailyPlayTime: TimeInterval = 0
     @State private var streak: Int = 0
+    
+    var progressPercentage: Double {
+        min((dailyPlayTime / dailyTarget) * 100, 100)
+    }
     
     var body: some View {
         VStack(spacing: 20) {
@@ -179,12 +200,12 @@ struct DailyProgressCard: View {
                         .frame(width: 120, height: 120)
                     
                     Circle()
-                        .trim(from: 0, to: min((gameStats?.dailyPlayTime ?? 0) / dailyTarget, 1.0))
+                        .trim(from: 0, to: CGFloat(min(dailyPlayTime / dailyTarget, 1.0)))
                         .stroke(
                             LinearGradient(
                                 colors: [
                                     Color("Plum"),
-                                    Color("FantasyPink")
+                                    Color("BittersweetOrange")
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -195,7 +216,7 @@ struct DailyProgressCard: View {
                         .rotationEffect(.degrees(-90))
                     
                     VStack(spacing: 4) {
-                        Text("\(Int((gameStats?.dailyPlayTime ?? 0) / 60))")
+                        Text("\(Int(dailyPlayTime / 60))")
                             .font(.custom("Outfit-Bold", size: 32))
                         Text("Dakika")
                             .font(.custom("Outfit-Regular", size: 14))
@@ -216,7 +237,7 @@ struct DailyProgressCard: View {
                     // Seri bilgisi
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 4) {
-                            // Ateş efekti (animasyonsuz)
+                            // Ateş efekti
                             ForEach(0..<min(streak, 5), id: \.self) { _ in
                                 Image(systemName: "flame.fill")
                                     .foregroundColor(.orange)
@@ -241,13 +262,45 @@ struct DailyProgressCard: View {
                 }
             }
             
-            // Alt kısım - Yıldızlar yerine ateşler (animasyonsuz)
-            HStack(spacing: 12) {
-                ForEach(0..<5) { index in
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(index < (gameStats?.score ?? 0) / 20 ? .orange : .gray.opacity(0.3))
-                        .shadow(color: index < (gameStats?.score ?? 0) / 20 ? .orange.opacity(0.5) : .clear, radius: 4)
+            // Alt kısım - İlerleme detayları
+            VStack(spacing: 12) {
+                // İlerleme çubuğu
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.gray.opacity(0.1))
+                            .frame(height: 12)
+                        
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color("Plum"), Color("BittersweetOrange")],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geometry.size.width * CGFloat(dailyPlayTime / dailyTarget), height: 12)
+                    }
+                }
+                .frame(height: 12)
+                
+                // İstatistikler
+                HStack {
+                    ProgressStatItem(
+                        icon: "clock.fill",
+                        title: "Kalan Süre",
+                        value: "\(max(0, Int((dailyTarget - dailyPlayTime) / 60))) dk",
+                        color: .blue
+                    )
+                    
+                    Spacer()
+                    
+                    ProgressStatItem(
+                        icon: "chart.line.uptrend.xyaxis",
+                        title: "İlerleme",
+                        value: String(format: "%.0f%%", progressPercentage),
+                        color: Color("Plum")
+                    )
                 }
             }
         }
@@ -258,59 +311,59 @@ struct DailyProgressCard: View {
                 .shadow(color: Color.black.opacity(0.05), radius: 15, x: 0, y: 5)
         )
         .onAppear {
-            fetchGameStats()
-            updateStreak()
+            fetchDailyPlayTime()
+            fetchStreak()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GameCompleted"))) { _ in
+            fetchDailyPlayTime()
+            fetchStreak()
         }
     }
     
-    private func fetchGameStats() {
-        guard let userId = FirebaseManager.shared.auth.currentUser?.uid else { return }
-        
-        Firestore.firestore().collection("gameStats")
-            .whereField("studentId", isEqualTo: child.id)
-            .whereField("parentId", isEqualTo: userId)
+    private func fetchDailyPlayTime() {
+        Firestore.firestore().collection("children")
+            .document(child.id)
             .addSnapshotListener { snapshot, error in
-                if let document = snapshot?.documents.first {
-                    let data = document.data()
-                    let lastPlayDate = (data["lastPlayDate"] as? Timestamp)?.dateValue() ?? Date()
-                    
-                    // Gün kontrolü
-                    let calendar = Calendar.current
-                    let today = calendar.startOfDay(for: Date())
-                    let lastDate = calendar.startOfDay(for: lastPlayDate)
-                    
-                    // Eğer yeni bir gün başladıysa dailyPlayTime sıfırlanmalı
-                    let dailyPlayTime = today == lastDate ? 
-                        (data["dailyPlayTime"] as? TimeInterval ?? 0) : 0
-                    
-                    self.gameStats = GameStats(
-                        correctMatches: data["correctMatches"] as? Int ?? 0,
-                        wrongMatches: data["wrongMatches"] as? Int ?? 0,
-                        score: data["score"] as? Int ?? 0,
-                        lastPlayedDate: lastPlayDate,
-                        fruits: [], // Diğer veriler aynı kalabilir
-                        playTime: data["playTime"] as? TimeInterval ?? 0,
-                        dailyPlayTime: dailyPlayTime, // Güncellenen dailyPlayTime
-                        gameCompleted: data["gameCompleted"] as? Bool ?? false,
-                        streak: data["streak"] as? Int ?? 0,
-                        lastStreakDate: lastPlayDate,
-                        studentId: child.id
-                    )
-                    
-                    // Eğer yeni gün başladıysa, Firestore'da da güncelle
-                    if today != lastDate {
-                        document.reference.updateData([
-                            "dailyPlayTime": 0,
-                            "lastPlayDate": Timestamp(date: Date())
-                        ])
-                    }
+                if let error = error {
+                    print("Error fetching daily play time: \(error)")
+                    return
+                }
+                
+                if let data = snapshot?.data(),
+                   let playTime = data["dailyPlayTime"] as? TimeInterval {
+                    self.dailyPlayTime = playTime
                 }
             }
     }
     
-    private func updateStreak() {
-        FirebaseManager.shared.updateStreak(for: child.id) { newStreak in
-            self.streak = newStreak
+    private func fetchStreak() {
+        FirebaseManager.shared.fetchStreak(for: child.id) { fetchedStreak in
+            self.streak = fetchedStreak
+        }
+    }
+}
+
+// MARK: - Progress Stat Item
+struct ProgressStatItem: View {
+    let icon: String
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.system(size: 18))
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.custom("Outfit-Regular", size: 12))
+                    .foregroundColor(.secondary)
+                Text(value)
+                    .font(.custom("Outfit-SemiBold", size: 16))
+                    .foregroundColor(color)
+            }
         }
     }
 }
@@ -358,65 +411,17 @@ struct ActivityListView: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            ForEach(activities, id: \.lastPlayedDate) { activity in
-                Button(action: {
-                    selectedActivity = activity
-                    showDetailedStats = true
-                }) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Üst kısım - Başlık ve durum
-                        HStack {
-                            Text("Meyve Eşleştirme")
-                                .font(.custom("Outfit-SemiBold", size: 16))
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            Text(activity.gameCompleted ? "TAMAMLANDI" : "TAMAMLANMADI")
-                                .font(.custom("Outfit-Medium", size: 12))
-                                .foregroundColor(activity.gameCompleted ? .green : .red)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(activity.gameCompleted ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
-                                )
-                        }
-                        
-                        // Alt kısım - İstatistikler
-                        HStack(spacing: 16) {
-                            // Süre
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock.fill")
-                                    .foregroundColor(.blue)
-                                Text("\(Int(activity.playTime / 60)) dk")
-                                    .font(.custom("Outfit-Medium", size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            // Puan
-                            HStack(spacing: 4) {
-                                Image(systemName: "star.fill")
-                                    .foregroundColor(.orange)
-                                Text("\(activity.score) puan")
-                                    .font(.custom("Outfit-Medium", size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Spacer()
-                            
-                            // Tarih
-                            Text(formatDate(activity.lastPlayedDate))
-                                .font(.custom("Outfit-Regular", size: 12))
-                                .foregroundColor(.secondary)
-                        }
+            if activities.isEmpty {
+                EmptyStatsView()
+                    .frame(height: 200)
+            } else {
+                ForEach(activities, id: \.lastPlayedDate) { activity in
+                    Button(action: {
+                        selectedActivity = activity
+                        showDetailedStats = true
+                    }) {
+                        ActivityCard(activity: activity)
                     }
-                    .padding(20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 24)
-                            .fill(Color.white)
-                            .shadow(color: Color.black.opacity(0.05), radius: 15, x: 0, y: 5)
-                    )
                 }
             }
         }
@@ -428,52 +433,154 @@ struct ActivityListView: View {
         .onAppear {
             fetchActivities()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GameCompleted"))) { _ in
+            print("Received GameCompleted notification")
+            fetchActivities()
+        }
+    }
+    
+    private func fetchActivities() {
+        print("Fetching activities for student: \(child.id)")
+        
+        Firestore.firestore().collection("gameStats")
+            .whereField("studentId", isEqualTo: child.id)
+            .whereField("gameCompleted", isEqualTo: true) // Sadece tamamlanmış oyunları göster
+            .limit(to: 10)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching activities: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    print("No documents found")
+                    return
+                }
+                
+                print("Found \(documents.count) documents")
+                
+                self.activities = documents.compactMap { document in
+                    let data = document.data()
+                    print("Processing document: \(data)")
+                    
+                    guard let timestamp = data["lastPlayDate"] as? Timestamp else {
+                        print("Invalid lastPlayDate")
+                        return nil
+                    }
+                    
+                    return GameStats(
+                        correctMatches: data["correctMatches"] as? Int ?? 0,
+                        wrongMatches: data["wrongMatches"] as? Int ?? 0,
+                        score: data["score"] as? Int ?? 0,
+                        lastPlayedDate: timestamp.dateValue(),
+                        fruits: [], 
+                        playTime: data["playTime"] as? TimeInterval ?? 0,
+                        dailyPlayTime: data["dailyPlayTime"] as? TimeInterval ?? 0,
+                        gameCompleted: data["gameCompleted"] as? Bool ?? false,
+                        streak: data["streak"] as? Int ?? 0,
+                        lastStreakDate: timestamp.dateValue(),
+                        studentId: child.id
+                    )
+                }
+                .sorted { $0.lastPlayedDate > $1.lastPlayedDate }
+                
+                print("Processed \(self.activities.count) activities")
+            }
+    }
+}
+
+// MARK: - Activity Card
+struct ActivityCard: View {
+    let activity: GameStats
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Üst kısım - Başlık ve durum
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Meyve Eşleştirme")
+                        .font(.custom("Outfit-SemiBold", size: 16))
+                        .foregroundColor(Color("NeutralBlack"))
+                    
+                    // Skor ve süre
+                    HStack(spacing: 12) {
+                        // Skor
+                        Label(
+                            "\(activity.score) puan",
+                            systemImage: "star.fill"
+                        )
+                        .foregroundColor(.orange)
+                        
+                        // Süre
+                        Label(
+                            "\(Int(activity.playTime / 60)) dk",
+                            systemImage: "clock.fill"
+                        )
+                        .foregroundColor(.blue)
+                    }
+                    .font(.custom("Outfit-Regular", size: 14))
+                }
+                
+                Spacer()
+                
+                // Durum ve tarih
+                VStack(alignment: .trailing, spacing: 4) {
+                    ParentStatusBadge(isCompleted: activity.gameCompleted)
+                    
+                    Text(formatDate(activity.lastPlayedDate))
+                        .font(.custom("Outfit-Regular", size: 12))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white)
+                .shadow(color: Color("Plum").opacity(0.05), radius: 10, y: 4)
+        )
     }
     
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "dd MMMM yyyy HH:mm"
+        formatter.dateFormat = "HH:mm"  // Sadece saat ve dakika
         formatter.locale = Locale(identifier: "tr_TR")
         return formatter.string(from: date)
     }
+}
+
+// MARK: - Status Badge
+struct ParentStatusBadge: View {
+    let isCompleted: Bool
     
-    private func fetchActivities() {
-        guard let userId = FirebaseManager.shared.auth.currentUser?.uid else { return }
-        
-        Firestore.firestore().collection("gameStats")
-            .whereField("studentId", isEqualTo: child.id)
-            .whereField("parentId", isEqualTo: userId)
-            .order(by: "lastPlayedDate", descending: true)
-            .addSnapshotListener { snapshot, error in
-                if let documents = snapshot?.documents {
-                    self.activities = documents.compactMap { document in
-                        let data = document.data()
-                        
-                        let fruitsData = data["fruits"] as? [[String: Any]] ?? []
-                        let fruits = fruitsData.map { fruitData in
-                            FruitMatchResult(
-                                fruitName: fruitData["fruitName"] as? String ?? "",
-                                isCorrect: fruitData["isCorrect"] as? Bool ?? false,
-                                attemptCount: fruitData["attemptCount"] as? Int ?? 0
-                            )
-                        }
-                        
-                        return GameStats(
-                            correctMatches: data["correctMatches"] as? Int ?? 0,
-                            wrongMatches: data["wrongMatches"] as? Int ?? 0,
-                            score: data["score"] as? Int ?? 0,
-                            lastPlayedDate: (data["lastPlayedDate"] as? Timestamp)?.dateValue() ?? Date(),
-                            fruits: fruits,
-                            playTime: data["playTime"] as? TimeInterval ?? 0,
-                            dailyPlayTime: data["dailyPlayTime"] as? TimeInterval ?? 0,
-                            gameCompleted: data["gameCompleted"] as? Bool ?? false,
-                            streak: data["streak"] as? Int ?? 0,
-                            lastStreakDate: (data["lastStreakDate"] as? Timestamp)?.dateValue() ?? Date(),
-                            studentId: data["studentId"] as? String ?? ""
-                        )
-                    }
-                }
-            }
+    var body: some View {
+        Text(isCompleted ? "TAMAMLANDI" : "DEVAM EDİYOR")
+            .font(.custom("Outfit-Medium", size: 12))
+            .foregroundColor(isCompleted ? .green : .orange)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isCompleted ? Color.green.opacity(0.1) : Color.orange.opacity(0.1))
+            )
+    }
+}
+
+// MARK: - Stat Item
+struct StatItem: View {
+    let icon: String
+    let value: String
+    let unit: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+            Text("\(value) \(unit)")
+                .font(.custom("Outfit-Medium", size: 14))
+                .foregroundColor(.secondary)
+        }
     }
 }
 
@@ -482,7 +589,7 @@ struct GameDetailView: View {
     let stats: GameStats
     let childName: String
     @Environment(\.dismiss) private var dismiss
-    @State private var previousGames: [GameStats] = []
+    @State private var showPremiumAlert = false
     
     var body: some View {
         NavigationView {
@@ -510,60 +617,44 @@ struct GameDetailView: View {
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(0.05), radius: 5)
                     
-                    // Meyve bazlı performans
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Meyve Detayları")
-                            .font(.custom("Outfit-SemiBold", size: 18))
-                        
-                        ForEach(stats.fruits, id: \.fruitName) { fruit in
+                    // Premium Banner
+                    Button(action: {
+                        showPremiumAlert = true
+                    }) {
+                        VStack(spacing: 12) {
                             HStack {
-                                Text(fruit.fruitName)
-                                    .font(.custom("Outfit-Medium", size: 16))
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Detaylı Rapor İster misiniz?")
+                                        .font(.custom("Outfit-SemiBold", size: 18))
+                                        .foregroundColor(.white)
+                                    
+                                    Text("Premium hesap ile çocuğunuzun gelişimini daha detaylı takip edin")
+                                        .font(.custom("Outfit-Regular", size: 14))
+                                        .foregroundColor(.white.opacity(0.9))
+                                        .lineLimit(2)
+                                }
                                 
                                 Spacer()
                                 
-                                HStack(spacing: 8) {
-                                    Image(systemName: fruit.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                        .foregroundColor(fruit.isCorrect ? .green : .red)
-                                    
-                                    Text("\(fruit.attemptCount) deneme")
-                                        .font(.custom("Outfit-Regular", size: 14))
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .padding()
-                            .background(Color.gray.opacity(0.05))
-                            .cornerRadius(10)
-                        }
-                    }
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.05), radius: 5)
-                    
-                    // Önceki oyunlar
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Önceki Oyunlar")
-                            .font(.custom("Outfit-SemiBold", size: 18))
-                        
-                        if previousGames.isEmpty {
-                            Text("Henüz başka oyun kaydı bulunmuyor")
-                                .font(.custom("Outfit-Regular", size: 14))
-                                .foregroundColor(.secondary)
-                        } else {
-                            ForEach(previousGames.sorted(by: { $0.lastPlayedDate > $1.lastPlayedDate }), id: \.lastPlayedDate) { game in
-                                PreviousGameCard(game: game)
+                                Image(systemName: "crown.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.yellow)
                             }
                         }
+                        .padding()
+                        .background(
+                            LinearGradient(
+                                colors: [Color("Plum"), Color("BittersweetOrange")],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(16)
                     }
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.05), radius: 5)
                 }
                 .padding()
             }
-            .navigationTitle("\(childName) - Oyun Detayı")
+            .navigationTitle("Oyun Detayları")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -573,49 +664,14 @@ struct GameDetailView: View {
                 }
             }
         }
-        .onAppear {
-            fetchPreviousGames()
-        }
-    }
-    
-    private func fetchPreviousGames() {
-        guard let userId = FirebaseManager.shared.auth.currentUser?.uid else { return }
-        
-        Firestore.firestore().collection("gameStats")
-            .whereField("studentId", isEqualTo: stats.studentId)
-            .whereField("parentId", isEqualTo: userId)
-            .order(by: "lastPlayedDate", descending: true)
-            .limit(to: 10) // Son 10 oyun
-            .getDocuments { snapshot, error in
-                if let documents = snapshot?.documents {
-                    self.previousGames = documents.compactMap { document in
-                        let data = document.data()
-                        
-                        let fruitsData = data["fruits"] as? [[String: Any]] ?? []
-                        let fruits = fruitsData.map { fruitData in
-                            FruitMatchResult(
-                                fruitName: fruitData["fruitName"] as? String ?? "",
-                                isCorrect: fruitData["isCorrect"] as? Bool ?? false,
-                                attemptCount: fruitData["attemptCount"] as? Int ?? 0
-                            )
-                        }
-                        
-                        return GameStats(
-                            correctMatches: data["correctMatches"] as? Int ?? 0,
-                            wrongMatches: data["wrongMatches"] as? Int ?? 0,
-                            score: data["score"] as? Int ?? 0,
-                            lastPlayedDate: (data["lastPlayedDate"] as? Timestamp)?.dateValue() ?? Date(),
-                            fruits: fruits,
-                            playTime: data["playTime"] as? TimeInterval ?? 0,
-                            dailyPlayTime: data["dailyPlayTime"] as? TimeInterval ?? 0,
-                            gameCompleted: data["gameCompleted"] as? Bool ?? false,
-                            streak: data["streak"] as? Int ?? 0,
-                            lastStreakDate: (data["lastStreakDate"] as? Timestamp)?.dateValue() ?? Date(),
-                            studentId: data["studentId"] as? String ?? ""
-                        )
-                    }
-                }
+        .alert("Premium'a Geç", isPresented: $showPremiumAlert) {
+            Button("Premium'a Geç", role: .none) {
+                // Premium satın alma işlemi
             }
+            Button("İptal", role: .cancel) {}
+        } message: {
+            Text("Premium hesap ile şunlara erişebilirsiniz:\n\n• Detaylı meyve performans analizi\n• Geçmiş oyun istatistikleri\n• Gelişim grafikleri\n• Özelleştirilmiş öneriler")
+        }
     }
 }
 
@@ -641,10 +697,10 @@ struct PreviousGameCard: View {
             
             // Alt kısım - İstatistikler
             HStack(spacing: 16) {
-                StatItem(title: "Puan", value: "\(game.score)", icon: "star.fill", color: .orange)
-                StatItem(title: "Süre", value: "\(Int(game.playTime / 60)) dk", icon: "clock.fill", color: .blue)
-                StatItem(title: "Doğru", value: "\(game.correctMatches)", icon: "checkmark.circle.fill", color: .green)
-                StatItem(title: "Yanlış", value: "\(game.wrongMatches)", icon: "xmark.circle.fill", color: .red)
+                ParentStatItem(title: "Puan", value: "\(game.score)", color: .orange)
+                ParentStatItem(title: "Süre", value: "\(Int(game.playTime / 60)) dk", color: .blue)
+                ParentStatItem(title: "Doğru", value: "\(game.correctMatches)",color: .green)
+                ParentStatItem(title: "Yanlış", value: "\(game.wrongMatches)",color: .red)
             }
         }
         .padding()
@@ -660,25 +716,21 @@ struct PreviousGameCard: View {
     }
 }
 
-struct StatItem: View {
+struct ParentStatItem: View {
     let title: String
     let value: String
-    let icon: String
-    let color: Color
+    var color: Color = .primary
     
     var body: some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .foregroundColor(color)
-            
-            Text(value)
-                .font(.custom("Outfit-SemiBold", size: 14))
-            
+        HStack {
             Text(title)
-                .font(.custom("Outfit-Regular", size: 12))
+                .font(.custom("Outfit-Regular", size: 16))
                 .foregroundColor(.secondary)
+            Spacer()
+            Text(value)
+                .font(.custom("Outfit-Medium", size: 16))
+                .foregroundColor(color)
         }
-        .frame(maxWidth: .infinity)
     }
 }
 
@@ -721,7 +773,7 @@ struct TargetSettingSheet: View {
                     .multilineTextAlignment(.center)
                 
                 Text("Çocuğunuzun gelişimi için düzenli uygulama kalıcı sonuçlar sağlayacaktır. Günde en az 16 dakika pratik yapması tavsiye edilir.")
-                    .font(.custom("Outfit-ExtraLight", size: 14))
+                    .font(.custom("Outfit-Regular", size: 14))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 
@@ -733,7 +785,7 @@ struct TargetSettingSheet: View {
                 }
                 .pickerStyle(.wheel)
                 
-                CustomButtonView(title: "Kaydet", type: .secondary) {
+                CustomButtonView(title: "Kaydet", type: .primary) {
                     saveTarget()
                 }
                 .padding()
