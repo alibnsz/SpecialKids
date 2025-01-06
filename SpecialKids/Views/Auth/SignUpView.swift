@@ -65,7 +65,7 @@ struct SignUpView: View {
                     // Şifre tekrar alanı
                     ZStack(alignment: .trailing) {
                         CustomTextField(
-                            placeholder: "Şifre Tekrar",
+                            placeholder: "Şifreyi Tekrar Giriniz",
                             text: $confirmPassword,
                             isSecure: !showConfirmPassword
                         )
