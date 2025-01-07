@@ -19,7 +19,6 @@ struct ParentView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Üst başlık - Hoşgeldin mesajı
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Hoşgeldin,")
