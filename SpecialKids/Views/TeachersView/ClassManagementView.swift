@@ -24,7 +24,7 @@ struct ClassManagementView: View {
                 // Existing classes dropdown
                 Menu {
                     if classes.isEmpty {
-                        Text("Henüz sınıf yok")
+                        Text("Henüz bir sınıf oluşturmadınız.")
                             .font(.custom(outfitLight, size: 16))
                             .foregroundColor(.gray)
                     } else {
