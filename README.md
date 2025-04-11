@@ -8,46 +8,17 @@
   <em>SpecialKids</em> is a mobile application developed with <strong>SwiftUI</strong>, specifically designed for students with dyslexia and ADHD (Attention Deficit Hyperactivity Disorder). The app supports the learning process by providing educational content and interactive games tailored to the individual needs of students. It also offers parents and teachers the ability to track student activities and access progress reports, allowing for personalized feedback on students' educational performance.
 </p>
 
-<h2 align="center">Screenshots</h2>
+<h2 align="center"> Teacher Dashboard Screenshots</h2>
 
-<table align="center">
-  <tr>
-    <td align="center"><img src="https://github.com/user-attachments/assets/91794079-af9e-41d4-bdf2-f4da1a9c73c0" alt="Teacher Home Screen" width="150"></td>
-    <td align="center"><img src="https://github.com/user-attachments/assets/95394820-4f41-4c5a-9b3b-225cab7aeaac" alt="Students Screen" width="150"></td>
-    <td align="center"><img src="https://github.com/user-attachments/assets/448d2b36-b89f-4ceb-9f70-fc620b931ead" alt="Homework Assignment Screen" width="150"></td>
-    <td align="center"><img src="https://github.com/user-attachments/assets/41e521c7-c1fb-4798-bf1e-1384b598caad" alt="Profile Screen" width="150"></td>
-  </tr>
-  <tr>
-    <td align="center">Teacher Home Screen</td>
-    <td align="center">Students Screen</td>
-    <td align="center">Homework Assignment Screen</td>
-    <td align="center">Profile Screen</td>  
-  </tr>
-  <tr>
-    <td align="center"><img src="https://github.com/user-attachments/assets/b6909d50-8aa9-4f28-b8ae-743173a60c94" alt="Teacher Notes Screen" width="150"></td>
-    <td align="center"><img src="https://github.com/user-attachments/assets/7512176c-8798-4e1c-a4d0-40f940b8a137" alt="Parent Home Screen" width="150"></td>
-    <td align="center"><img src="https://github.com/user-attachments/assets/132d3bf8-da31-4190-8c23-6219cb67eef3" alt="Parent Homework Screen" width="150"></td>
-    <td align="center"><img src="https://github.com/user-attachments/assets/ad080c96-77db-4cba-b657-5cea9fd5f137" alt="Progress Report Screen" width="150"></td>
-  </tr>    
-  <tr>    
-    <td align="center">Teacher Notes Screen</td>
-    <td align="center">Parent Home Screen</td>
-    <td align="center">Parent Homework Screen</td>  
-    <td align="center">Progress Report Screen</td>
-  </tr>
-  <tr>
-    <td align="center"><img src="https://github.com/user-attachments/assets/37e00f9a-dae5-470e-aba9-06ed2ebf7b66" alt="Parent Education Screen" width="150"></td>
-    <td align="center"><img src="https://github.com/user-attachments/assets/16660050-9b03-4239-ad72-1136ea241599" alt="Games Screen 1" width="150"></td>
-    <td align="center"><img src="https://github.com/user-attachments/assets/8eb5fd69-b9e1-4a3f-a920-210343d38c16" alt="Games Screen 2" width="150"></td>
-    <td align="center"><img src="https://github.com/user-attachments/assets/54d8bdd5-b7a8-41f5-b23e-c2d778f38f36" alt="Games Screen 3" width="150"></td>
-  </tr>
-  <tr>  
-    <td align="center">Parent Education Screen</td>
-    <td align="center">Games Screen 1</td>
-    <td align="center">Games Screen 2</td>
-    <td align="center">Games Screen 3</td>
-  </tr>
-</table>
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/f78ea221-738a-4047-a224-9a37adfbe885" alt="SpecialKids Screenshot" width="3487">
+</div>
+
+<h2 align="center">Parent Dashboard Screenshots</h2>
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/7831e646-08ce-45e3-9aab-237a42631e73" alt="SpecialKids Screenshot" width="3487">
+</div>
 
 <h2>Features</h2>
 <ul>
